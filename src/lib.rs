@@ -178,3 +178,87 @@ fn arg_min(a: f64, b: f64, c: f64) -> usize {
         0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{compute_matrix, DynamicTimeWarp, compute_path};
+
+    #[test]
+    fn dynamic_time_warp_new() {
+        let dtw = DynamicTimeWarp::new(3, 5);
+        assert!(dtw.matrix.iter().all(|f| *f == 0.0));
+        assert!(dtw.matrix.len() == 15);
+        assert!(dtw.shape == (3, 5));
+    }
+
+    #[test]
+    fn dynamic_time_warp_access_index() {
+        let dtw = DynamicTimeWarp {
+            matrix: (1..26).map(|i| i as f64).collect(),
+            shape: (5, 5),
+        };
+        for i in 0..dtw.shape.0 {
+            for j in 0..dtw.shape.1 {
+                assert!(dtw[(i, j)] == (dtw.shape.0 * i + j + 1) as f64);
+            }
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn dynamic_time_warp_access_out_of_index_0() {
+        let dtw = DynamicTimeWarp::new(2, 3);
+        assert!(f64::is_nan(dtw[(2, 0)]))
+    }
+
+    #[test]
+    #[should_panic]
+    fn dynamic_time_warp_access_out_of_index_1() {
+        let dtw = DynamicTimeWarp::new(2, 3);
+        assert!(f64::is_nan(dtw[(0, 3)]));
+    }
+
+    #[test]
+    fn dynamic_time_warp_assign_index() {
+        let mut dtw = DynamicTimeWarp::new(1, 1);
+        assert!(dtw[(0, 0)] == 0.0);
+        dtw[(0, 0)] = 1.0;
+        assert!(dtw[(0, 0)] == 1.0);
+    }
+
+    #[test]
+    fn compute_matrix_with_example() {
+        let a = [1.0, 3.0, 9.0, 2.0, 1.0];
+        let b = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0];
+        let expected_matrix = [
+            1.0, 2.0, 3.0, 10.0, 16.0, 17.0,
+            2.0, 4.0, 5.0, 8.0, 12.0, 13.0,
+            9.0, 11.0, 13.0, 6.0, 8.0, 15.0,
+            9.0, 11.0, 13.0, 12.0, 11.0, 8.0,
+            10.0, 10.0, 11.0, 18.0, 17.0, 9.0,
+        ];
+
+        let mut dtw = DynamicTimeWarp::new(a.len(), b.len());
+        compute_matrix(&mut dtw, |i, j| f64::abs(a[i] - b[j]));
+        println!("Matrix:");
+        println!("{}", dtw);
+        assert!(*dtw.matrix == expected_matrix);
+    }
+
+    #[test]
+    fn compute_path_with_example() {
+        let dtw = DynamicTimeWarp {
+            matrix: Box::new([
+                1.0, 2.0, 3.0, 10.0, 16.0, 17.0,
+                2.0, 4.0, 5.0, 8.0, 12.0, 13.0,
+                9.0, 11.0, 13.0, 6.0, 8.0, 15.0,
+                9.0, 11.0, 13.0, 12.0, 11.0, 8.0,
+                10.0, 10.0, 11.0, 18.0, 17.0, 9.0,
+            ]),
+            shape: (5, 6),
+        };
+        let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (2, 4), (3, 5), (4, 5)];
+        let founded_path = compute_path(&dtw, 4, 5);
+        assert!(expected_path == *founded_path);
+    }
+}
