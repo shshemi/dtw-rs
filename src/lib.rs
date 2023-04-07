@@ -220,10 +220,22 @@ mod tests {
 
     #[test]
     fn dynamic_time_warp_assign_index() {
-        let mut dtw = DynamicTimeWarp::new(1, 1);
-        assert!(dtw[(0, 0)] == 0.0);
-        dtw[(0, 0)] = 1.0;
-        assert!(dtw[(0, 0)] == 1.0);
+        const MATRIX_SIZE: usize = 5;
+        for i in 0..MATRIX_SIZE{
+            for j in 0..MATRIX_SIZE {
+                let mut dtw = DynamicTimeWarp::new(MATRIX_SIZE, MATRIX_SIZE);
+                dtw[(i, j)] = 1.0;
+                for k in 0..MATRIX_SIZE{
+                    for l in 0..MATRIX_SIZE {
+                        if i == k && l == j {
+                            assert!(dtw[(k, l)] == 1.0);
+                        } else {
+                            assert!(dtw[(k, l)] == 0.0);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]
