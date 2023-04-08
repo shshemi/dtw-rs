@@ -7,11 +7,7 @@ pub trait Distance {
     fn distance(&self, other: &Self) -> f64;
 }
 
-#[derive(Debug, PartialEq)]
-pub struct DynamicTimeWarp {
-    matrix: Box<[f64]>,
-    pub shape: (usize, usize),
-}
+pub type DistanceClosure<T> = Box<dyn Fn(&T, &T) -> f64>;
 
 impl DynamicTimeWarp {
     pub fn between<T: Distance>(a: &[T], b: &[T]) -> DynamicTimeWarp {
