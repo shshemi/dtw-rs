@@ -3,11 +3,14 @@ pub mod dynamic_programming;
 use std::default::Default;
 use std::{marker::PhantomData, ops::Sub};
 
-pub trait Distance {
-    fn distance(&self, other: &Self) -> f64;
+pub struct DynamicTimeWarping<A: DyanmicTimeWarpingAlgorithm> {
+    a: PhantomData<A>,
 }
 
-pub type DistanceClosure<T> = Box<dyn Fn(&T, &T) -> f64>;
+pub struct DynamicTimeWarpigWithDistanceClosure<A, T> {
+    a: PhantomData<A>,
+    distance: DistanceClosure<T>,
+}
 
 pub trait DyanmicTimeWarpingAlgorithm {
     fn between<T: Distance>(a: &[T], b: &[T]) -> Self;
@@ -16,13 +19,11 @@ pub trait DyanmicTimeWarpingAlgorithm {
     fn path(&self) -> Vec<(usize, usize)>;
 }
 
-pub struct DynamicTimeWarping<A: DyanmicTimeWarpingAlgorithm> {
-    a: PhantomData<A>,
+pub trait Distance {
+    fn distance(&self, other: &Self) -> f64;
 }
-pub struct DynamicTimeWarpigWithDistanceClosure<A, T> {
-    a: PhantomData<A>,
-    distance: DistanceClosure<T>,
-}
+
+pub type DistanceClosure<T> = Box<dyn Fn(&T, &T) -> f64>;
 
 impl<A: DyanmicTimeWarpingAlgorithm> Default for DynamicTimeWarping<A> {
     fn default() -> Self {
