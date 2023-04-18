@@ -1,4 +1,7 @@
-use dtw_rs::{Distance, DynamicTimeWarping, dynamic_programming::DynamicProgramming, DyanmicTimeWarpingAlgorithm};
+use dtw_rs::{
+    dynamic_programming::DynamicProgramming, Distance, DyanmicTimeWarpingAlgorithm,
+    DynamicTimeWarping,
+};
 use std::default::Default;
 
 
@@ -8,7 +11,7 @@ fn end_to_end_f64() {
     let b = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0].map(MockF64);
     let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (2, 4), (3, 5), (4, 5)];
     let expected_distance = 9.0;
-    let dtw = DynamicProgramming::between(&a, &b);
+    let dtw = DynamicTimeWarping::<DynamicProgramming>::default().compute(&a, &b);
     println!("Matrix:");
     println!("{}", dtw);
     println!("Path: {:?}", dtw.path());
@@ -20,7 +23,7 @@ fn end_to_end_f64() {
 fn end_to_end_char() {
     let a = "abbc".chars().map(MockChar).collect::<Vec<MockChar>>();
     let b = "abc".chars().map(MockChar).collect::<Vec<MockChar>>();
-    let dtw = DynamicProgramming::between(&a, &b);
+    let dtw = DynamicTimeWarping::<DynamicProgramming>::default().compute(&a, &b);
     println!("Matrix:");
     println!("{}", dtw);
     println!("Path: {:?}", dtw.path());
