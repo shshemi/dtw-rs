@@ -28,6 +28,22 @@ fn end_to_end_char() {
     assert!(*dtw.path() == [(0, 0), (1, 1), (2, 1), (3, 2)]);
 }
 
+#[test]
+fn end_to_end_f64_with_absolute_distance() {
+    let a = [1.0, 3.0, 9.0, 2.0, 1.0];
+    let b = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0];
+    let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (2, 4), (3, 5), (4, 5)];
+    let expected_distance = 9.0;
+
+    let dtw = DynamicTimeWarping::<DynamicProgramming>::default()
+        .with_absolute_distance()
+        .compute(&a, &b);
+    println!("Matrix:");
+    println!("{}", dtw);
+    println!("Path: {:?}", dtw.path());
+    assert!(dtw.distance() == expected_distance);
+    assert!(*dtw.path() == expected_path);
+}
 struct MockF64(f64);
 struct MockChar(char);
 
