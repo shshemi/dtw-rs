@@ -25,12 +25,6 @@ pub struct WithCallback<T, C>(C, PhantomData<T>)
 where
     C: Fn(&T, &T) -> f64;
 
-/// The struct is the same as `DynamicTimeWarping` except that it has a `DistanceClosure` which will be
-/// used to measure the distance between two elements.
-// pub struct DynamicTimeWarpigWithDistanceClosure<A, T> {
-//     a: PhantomData<A>,
-//     distance: DistanceClosure<T>,
-// }
 
 /// The trait is used to define the behavior of algorithms that compute the dynamic time warping between
 /// two sequences. Any type which intent to operate with `DynamicTimeWarping` should implement `between`
