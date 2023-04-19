@@ -59,10 +59,6 @@ impl<A: DyanmicTimeWarpingAlgorithm> Default for DynamicTimeWarping<A, NoCallbac
     }
 }
 
-/// This is an implementation block for the `DynamicTimeWarping` struct with a generic type parameter
-/// `A` that must implement the `DyanmicTimeWarpingAlgorithm` trait. The struct is parameterized with a
-/// type `S` which defaults to `NoCallback`. This block defines methods that can be called on
-/// `DynamicTimeWarping` instances with `NoCallback` as the type parameter for `S`.
 impl<A: DyanmicTimeWarpingAlgorithm> DynamicTimeWarping<A, NoCallback> {
     /// This function returns a new instance of DynamicTimeWarping with a custom distance closure.
     ///
