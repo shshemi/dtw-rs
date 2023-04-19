@@ -56,9 +56,9 @@ fn end_to_end_f64_with_custom_distance() {
     let expected_distance = 9.0;
 
     let dtw = DynamicTimeWarping::<DynamicProgramming>::default()
-        .with_custom_distance(Box::new(|a, b|{
+        .with_custom_distance(|a, b|{
             f64::abs(a - b)
-        }))
+        })
         .compute(&a, &b);
     println!("Matrix:");
     println!("{}", dtw);

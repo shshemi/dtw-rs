@@ -21,7 +21,9 @@ pub struct DynamicTimeWarping<A: DyanmicTimeWarpingAlgorithm, S = NoCallback> {
 
 #[derive(Default)]
 pub struct NoCallback;
-pub struct WithCallback<T>(DistanceClosure<T>);
+pub struct WithCallback<T, C>(C, PhantomData<T>)
+where
+    C: Fn(&T, &T) -> f64;
 
 /// The struct is the same as `DynamicTimeWarping` except that it has a `DistanceClosure` which will be
 /// used to measure the distance between two elements.
@@ -48,10 +50,6 @@ pub trait Distance {
     fn distance(&self, other: &Self) -> f64;
 }
 
-/// `DistanceClosure<T>` is a type alias for a boxed closure that takes two references to objects of
-/// type `T` and returns a `f64` value representing the distance between the two objects.
-pub type DistanceClosure<T> = Box<dyn Fn(&T, &T) -> f64>;
-
 impl<A: DyanmicTimeWarpingAlgorithm> Default for DynamicTimeWarping<A, NoCallback> {
     fn default() -> Self {
         Self {
@@ -66,75 +64,74 @@ impl<A: DyanmicTimeWarpingAlgorithm> Default for DynamicTimeWarping<A, NoCallbac
 /// type `S` which defaults to `NoCallback`. This block defines methods that can be called on
 /// `DynamicTimeWarping` instances with `NoCallback` as the type parameter for `S`.
 impl<A: DyanmicTimeWarpingAlgorithm> DynamicTimeWarping<A, NoCallback> {
-/// This function returns a new instance of DynamicTimeWarping with a custom distance closure.
-/// 
-/// Arguments:
-/// 
-/// * `distance`: `distance` is a distance closure that takes two arguments of type `&T` and returns a `f64`
-/// which represents the distance between thw two elements
-/// 
-/// Returns:
-/// 
-/// The function `with_custom_distance` returns a new instance of `DynamicTimeWarping` with the same `a`
-/// value as the original instance, but with a new `s` value that is a `WithCallback` struct containing
-/// the `distance` closure passed as an argument.
+    /// This function returns a new instance of DynamicTimeWarping with a custom distance closure.
+    ///
+    /// Arguments:
+    ///
+    /// * `distance`: `distance` is a distance closure that takes two arguments of type `&T` and returns a `f64`
+    /// which represents the distance between thw two elements
+    ///
+    /// Returns:
+    ///
+    /// The function `with_custom_distance` returns a new instance of `DynamicTimeWarping` with the same `a`
+    /// value as the original instance, but with a new `s` value that is a `WithCallback` struct containing
+    /// the `distance` closure passed as an argument.
     pub fn with_custom_distance<T>(
         self,
-        distance: DistanceClosure<T>,
-    ) -> DynamicTimeWarping<A, WithCallback<T>> {
+        distance: impl Fn(&T, &T) -> f64,
+    ) -> DynamicTimeWarping<A, WithCallback<T, impl Fn(&T, &T) -> f64>> {
         DynamicTimeWarping {
             a: self.a,
-            s: WithCallback(distance),
+            s: WithCallback(distance, Default::default()),
         }
     }
 
-/// The function absolute distance closure to make the computation of dynamic time warping possible for
-/// types that do not implement Distance trait
-/// 
-/// Returns:
-/// 
-/// `DynamicTimeWarping` builder with absolute distance
-    pub fn with_absolute_distance<T, O>(self) -> DynamicTimeWarping<A, WithCallback<T>>
+    /// The function absolute distance closure to make the computation of dynamic time warping possible for
+    /// types that do not implement Distance trait
+    ///
+    /// Returns:
+    ///
+    /// `DynamicTimeWarping` builder with absolute distance
+    pub fn with_absolute_distance<T, O>(
+        self,
+    ) -> DynamicTimeWarping<A, WithCallback<T, impl Fn(&T, &T) -> f64>>
     where
         O: Into<f64>,
         T: Sub<Output = O> + PartialOrd + Copy,
     {
-        DynamicTimeWarping {
-            a: self.a,
-            s: WithCallback(Box::new(|a, b| {
-                if a > b { *a - *b } else { *b - *a }.into()
-            })),
-        }
+        self.with_custom_distance(|a:&T, b:&T| { if a > b { *a - *b } else { *b - *a }.into() })
     }
 
-/// The function accepts two slide of type T and compute the dynamic warping distance with respect to the
-/// distance trait implemented by type T.
-/// 
-/// Arguments:
-/// 
-/// * `a`: `a` is a slice of type `&[T:Distance]` that represents the 1st sequence.
-/// * `b`: `b` is a slice of type `&[T:Distance]` that represents the 2nd sequence.
-/// 
-/// Returns:
-/// 
-/// The dynaimc warpped path and the distance between a and b.
+    /// The function accepts two slide of type T and compute the dynamic warping distance with respect to the
+    /// distance trait implemented by type T.
+    ///
+    /// Arguments:
+    ///
+    /// * `a`: `a` is a slice of type `&[T:Distance]` that represents the 1st sequence.
+    /// * `b`: `b` is a slice of type `&[T:Distance]` that represents the 2nd sequence.
+    ///
+    /// Returns:
+    ///
+    /// The dynaimc warpped path and the distance between a and b.
     pub fn compute<T: Distance>(&self, a: &[T], b: &[T]) -> A {
         A::between(a, b)
     }
 }
 
-impl<A: DyanmicTimeWarpingAlgorithm, T> DynamicTimeWarping<A, WithCallback<T>> {
-/// The function accepts two slide of type T and compute the dynamic warping distance with respect to the
-/// distance closure block what was passed.
-/// 
-/// Arguments:
-/// 
-/// * `a`: `a` is a slice of type `&[T]` that represents the 1st sequence.
-/// * `b`: `b` is a slice of type `&[T]` that represents the 2nd sequence.
-/// 
-/// Returns:
-/// 
-/// The dynaimc warpped path and the distance between a and b.
+impl<A: DyanmicTimeWarpingAlgorithm, T, C: Fn(&T, &T) -> f64>
+    DynamicTimeWarping<A, WithCallback<T, C>>
+{
+    /// The function accepts two slide of type T and compute the dynamic warping distance with respect to the
+    /// distance closure block what was passed.
+    ///
+    /// Arguments:
+    ///
+    /// * `a`: `a` is a slice of type `&[T]` that represents the 1st sequence.
+    /// * `b`: `b` is a slice of type `&[T]` that represents the 2nd sequence.
+    ///
+    /// Returns:
+    ///
+    /// The dynaimc warpped path and the distance between a and b.
     pub fn compute(&self, a: &[T], b: &[T]) -> A {
         A::between_closure(a, b, &self.s.0)
     }
