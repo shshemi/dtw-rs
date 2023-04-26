@@ -1,29 +1,22 @@
-use std::{ops::{Index, IndexMut}, fmt::Display};
+use std::{
+    fmt::Display,
+    ops::{Index, IndexMut},
+};
 
-use crate::{DyanmicTimeWarpingAlgorithm, Distance};
-
+use crate::BasicMethod;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct DynamicProgramming {
     matrix: Box<[f64]>,
-    pub shape: (usize, usize),
+    shape: (usize, usize),
 }
 
-impl DyanmicTimeWarpingAlgorithm for DynamicProgramming {
-    fn between<T: Distance>(a: &[T], b: &[T]) -> DynamicProgramming {
-        let mut dtw = DynamicProgramming::new(a.len(), b.len());
-        compute_matrix(&mut dtw, |i, j| a[i].distance(&b[j]));
-        dtw
-    }
-
-    fn between_closure<T>(
-        a: &[T],
-        b: &[T],
-        distance: impl Fn(&T, &T) -> f64,
-    ) -> DynamicProgramming {
-        let mut dtw = DynamicProgramming::new(a.len(), b.len());
-        compute_matrix(&mut dtw, |i, j| distance(&a[i], &b[j]));
-        dtw
+impl BasicMethod for DynamicProgramming {
+    
+    fn with_closure<T>(a: &[T], b: &[T], distance: impl Fn(&T, &T) -> f64) -> Self {
+        let mut dp = DynamicProgramming::new(a.len(), b.len());
+        compute_matrix(&mut dp, |i, j| distance(&a[i], &b[j]));
+        dp
     }
 
     fn distance(&self) -> f64 {
@@ -33,6 +26,7 @@ impl DyanmicTimeWarpingAlgorithm for DynamicProgramming {
     fn path(&self) -> Vec<(usize, usize)> {
         self.path_from(self.shape.0 - 1, self.shape.1 - 1)
     }
+
 }
 
 impl Index<(usize, usize)> for DynamicProgramming {
