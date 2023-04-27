@@ -3,7 +3,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use crate::BasicMethod;
+use crate::DynamicTimeWarping;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct DynamicProgramming {
@@ -11,7 +11,7 @@ pub struct DynamicProgramming {
     shape: (usize, usize),
 }
 
-impl BasicMethod for DynamicProgramming {
+impl DynamicTimeWarping for DynamicProgramming {
     
     fn with_closure<T>(a: &[T], b: &[T], distance: impl Fn(&T, &T) -> f64) -> Self {
         let mut dp = DynamicProgramming::new(a.len(), b.len());
