@@ -1,4 +1,4 @@
-use dtw_rs::{methods::DynamicProgramming, BasicMethod, Distance};
+use dtw_rs::{methods::DynamicProgramming, DynamicTimeWarping, Distance};
 
 #[test]
 fn dynamic_programming_distance_trait() {
