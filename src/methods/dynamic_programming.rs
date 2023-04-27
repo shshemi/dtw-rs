@@ -1,118 +1,68 @@
-use std::{
-    fmt::Display,
-    ops::{Index, IndexMut},
-};
+use std::fmt::Display;
 
+use super::utils::Matrix;
 use crate::DynamicTimeWarping;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct DynamicProgramming {
-    matrix: Box<[f64]>,
-    shape: (usize, usize),
+    matrix: Matrix,
 }
 
 impl DynamicTimeWarping for DynamicProgramming {
-    
     fn with_closure<T>(a: &[T], b: &[T], distance: impl Fn(&T, &T) -> f64) -> Self {
         let mut dp = DynamicProgramming::new(a.len(), b.len());
-        compute_matrix(&mut dp, |i, j| distance(&a[i], &b[j]));
+        compute_matrix(&mut dp.matrix, |i, j| distance(&a[i], &b[j]));
         dp
     }
 
     fn distance(&self) -> f64 {
-        self[(self.shape.0 - 1, self.shape.1 - 1)]
+        let shape = self.matrix.shape();
+        self.matrix[(shape.0 - 1, shape.1 - 1)]
     }
 
     fn path(&self) -> Vec<(usize, usize)> {
-        self.path_from(self.shape.0 - 1, self.shape.1 - 1)
-    }
-
-}
-
-impl Index<(usize, usize)> for DynamicProgramming {
-    type Output = f64;
-
-    fn index(&self, idx: (usize, usize)) -> &Self::Output {
-        assert!(
-            idx.0 < self.shape.0,
-            "Dimention 0 should be less than shape.0 = {}",
-            self.shape.0
-        );
-        assert!(
-            idx.1 < self.shape.1,
-            "Dimention 1 should be less than shape.1 = {}",
-            self.shape.1
-        );
-        &self.matrix[self.shape.1 * idx.0 + idx.1]
-    }
-}
-
-impl IndexMut<(usize, usize)> for DynamicProgramming {
-    fn index_mut(&mut self, idx: (usize, usize)) -> &mut Self::Output {
-        assert!(
-            idx.0 < self.shape.0,
-            "Dimention 0 should be less than shape.0 = {}",
-            self.shape.0
-        );
-        assert!(
-            idx.1 < self.shape.1,
-            "Dimention 1 should be less than shape.1 = {}",
-            self.shape.1
-        );
-        &mut self.matrix[self.shape.1 * idx.0 + idx.1]
+        let shape = self.matrix.shape();
+        self.path_from(shape.0 - 1, shape.1 - 1)
     }
 }
 
 impl Display for DynamicProgramming {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let pad = self
-            .matrix
-            .iter()
-            .map(|f| format!("{:.2}", f).len())
-            .max()
-            .unwrap()
-            + 1;
-        for i in 0..self.shape.0 {
-            for j in 0..self.shape.1 {
-                write!(f, "{: >pad$.2}", self[(i, j)], pad = pad)?
-            }
-            writeln!(f)?
-        }
-        Ok(())
+        write!(f, "Dynamic programming computation matrix: {}", self.matrix)
     }
 }
 
 impl DynamicProgramming {
     pub fn path_from(&self, i: usize, j: usize) -> Vec<(usize, usize)> {
+        let shape = self.matrix.shape();
         assert!(
-            i < self.shape.0,
+            i < shape.0,
             "Dimention 0 should be less than shape.0 = {}",
-            self.shape.0
+            shape.0
         );
         assert!(
-            j < self.shape.1,
+            j < shape.1,
             "Dimention 1 should be less than shape.1 = {}",
-            self.shape.1
+            shape.1
         );
         compute_path(self, i, j)
     }
 
     fn new(i: usize, j: usize) -> DynamicProgramming {
         DynamicProgramming {
-            matrix: vec![Default::default(); i * j].into_boxed_slice(),
-            shape: (i, j),
+            matrix: Matrix::new(i, j),
         }
     }
 }
 
-fn compute_matrix(dtw: &mut DynamicProgramming, distance: impl Fn(usize, usize) -> f64) {
-    for i in 0..dtw.shape.0 {
-        for j in 0..dtw.shape.1 {
+fn compute_matrix(matrix: &mut Matrix, distance: impl Fn(usize, usize) -> f64) {
+    for i in 0..matrix.shape().0 {
+        for j in 0..matrix.shape().1 {
             let d = distance(i, j);
-            let top = top_cost(dtw, i, j);
-            let left = left_cost(dtw, i, j);
-            let top_left = top_left_cost(dtw, i, j);
-            dtw[(i, j)] = d + min(top_left, top, left);
+            let top = top_cost(matrix, i, j);
+            let left = left_cost(matrix, i, j);
+            let top_left = top_left_cost(matrix, i, j);
+            matrix[(i, j)] = d + min(top_left, top, left);
         }
     }
 }
@@ -122,9 +72,9 @@ fn compute_path(dtw: &DynamicProgramming, i: usize, j: usize) -> Vec<(usize, usi
     let mut j = j;
     let mut v = vec![(i, j)];
     while i != 0 || j != 0 {
-        let top = top_cost(dtw, i, j);
-        let left = left_cost(dtw, i, j);
-        let top_left = top_left_cost(dtw, i, j);
+        let top = top_cost(&dtw.matrix, i, j);
+        let left = left_cost(&dtw.matrix, i, j);
+        let top_left = top_left_cost(&dtw.matrix, i, j);
         match arg_min(top_left, top, left) {
             0 => {
                 i -= 1;
@@ -145,31 +95,31 @@ fn compute_path(dtw: &DynamicProgramming, i: usize, j: usize) -> Vec<(usize, usi
 }
 
 #[inline]
-fn top_cost(dtw: &DynamicProgramming, i: usize, j: usize) -> f64 {
+fn top_cost(matrix: &Matrix, i: usize, j: usize) -> f64 {
     if i == 0 {
         f64::INFINITY
     } else {
-        dtw[(i - 1, j)]
+        matrix[(i - 1, j)]
     }
 }
 
 #[inline]
-fn left_cost(dtw: &DynamicProgramming, i: usize, j: usize) -> f64 {
+fn left_cost(matrix: &Matrix, i: usize, j: usize) -> f64 {
     if j == 0 {
         f64::INFINITY
     } else {
-        dtw[(i, j - 1)]
+        matrix[(i, j - 1)]
     }
 }
 
 #[inline]
-fn top_left_cost(dtw: &DynamicProgramming, i: usize, j: usize) -> f64 {
+fn top_left_cost(matrix: &Matrix, i: usize, j: usize) -> f64 {
     if i == 0 && j == 0 {
         0.0
     } else if i == 0 || j == 0 {
         f64::INFINITY
     } else {
-        dtw[(i - 1, j - 1)]
+        matrix[(i - 1, j - 1)]
     }
 }
 
@@ -193,88 +143,43 @@ fn arg_min(a: f64, b: f64, c: f64) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use crate::methods::utils::Matrix;
+
     use super::{compute_matrix, compute_path, DynamicProgramming};
-
-    #[test]
-    fn dynamic_time_warp_new() {
-        let dtw = DynamicProgramming::new(3, 5);
-        assert!(dtw.matrix.iter().all(|f| *f == 0.0));
-        assert!(dtw.matrix.len() == 15);
-        assert!(dtw.shape == (3, 5));
-    }
-
-    #[test]
-    fn dynamic_time_warp_access_index() {
-        let dtw = DynamicProgramming {
-            matrix: (1..26).map(|i| i as f64).collect(),
-            shape: (5, 5),
-        };
-        for i in 0..dtw.shape.0 {
-            for j in 0..dtw.shape.1 {
-                assert!(dtw[(i, j)] == (dtw.shape.0 * i + j + 1) as f64);
-            }
-        }
-    }
-
-    #[test]
-    #[should_panic]
-    fn dynamic_time_warp_access_out_of_index_0() {
-        let dtw = DynamicProgramming::new(2, 3);
-        assert!(f64::is_nan(dtw[(2, 0)]))
-    }
-
-    #[test]
-    #[should_panic]
-    fn dynamic_time_warp_access_out_of_index_1() {
-        let dtw = DynamicProgramming::new(2, 3);
-        assert!(f64::is_nan(dtw[(0, 3)]));
-    }
-
-    #[test]
-    fn dynamic_time_warp_assign_index() {
-        const MATRIX_SIZE: usize = 5;
-        for i in 0..MATRIX_SIZE {
-            for j in 0..MATRIX_SIZE {
-                let mut dtw = DynamicProgramming::new(MATRIX_SIZE, MATRIX_SIZE);
-                dtw[(i, j)] = 1.0;
-                for k in 0..MATRIX_SIZE {
-                    for l in 0..MATRIX_SIZE {
-                        if i == k && l == j {
-                            assert!(dtw[(k, l)] == 1.0);
-                        } else {
-                            assert!(dtw[(k, l)] == 0.0);
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     #[test]
     fn compute_matrix_with_example() {
         let a = [1.0, 3.0, 9.0, 2.0, 1.0];
         let b = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0];
-        let expected_matrix = [
-            1.0, 2.0, 3.0, 10.0, 16.0, 17.0, 2.0, 4.0, 5.0, 8.0, 12.0, 13.0, 9.0, 11.0, 13.0, 6.0,
-            8.0, 15.0, 9.0, 11.0, 13.0, 12.0, 11.0, 8.0, 10.0, 10.0, 11.0, 18.0, 17.0, 9.0,
-        ];
+        let expected_matrix = Matrix::from(
+            &[
+                1.0, 2.0, 3.0, 10.0, 16.0, 17.0, 2.0, 4.0, 5.0, 8.0, 12.0, 13.0, 9.0, 11.0, 13.0,
+                6.0, 8.0, 15.0, 9.0, 11.0, 13.0, 12.0, 11.0, 8.0, 10.0, 10.0, 11.0, 18.0, 17.0,
+                9.0,
+            ],
+            5,
+            6,
+        );
 
         let mut dtw = DynamicProgramming::new(a.len(), b.len());
-        compute_matrix(&mut dtw, |i, j| f64::abs(a[i] - b[j]));
+        compute_matrix(&mut dtw.matrix, |i, j| f64::abs(a[i] - b[j]));
         println!("Matrix:");
-        println!("{}", dtw);
-        assert!(*dtw.matrix == expected_matrix);
+        println!("{}", dtw.matrix);
+        assert!(dtw.matrix == expected_matrix);
     }
 
     #[test]
     fn compute_path_with_example() {
         let dtw = DynamicProgramming {
-            matrix: Box::new([
-                1.0, 2.0, 3.0, 10.0, 16.0, 17.0, 2.0, 4.0, 5.0, 8.0, 12.0, 13.0, 9.0, 11.0, 13.0,
-                6.0, 8.0, 15.0, 9.0, 11.0, 13.0, 12.0, 11.0, 8.0, 10.0, 10.0, 11.0, 18.0, 17.0,
-                9.0,
-            ]),
-            shape: (5, 6),
+            matrix: Matrix::from(
+                &[
+                    1.0, 2.0, 3.0, 10.0, 16.0, 17.0, 2.0, 4.0, 5.0, 8.0, 12.0, 13.0, 9.0, 11.0,
+                    13.0, 6.0, 8.0, 15.0, 9.0, 11.0, 13.0, 12.0, 11.0, 8.0, 10.0, 10.0, 11.0, 18.0,
+                    17.0, 9.0,
+                ],
+                5,
+                6,
+            ),
         };
         let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (2, 4), (3, 5), (4, 5)];
         let founded_path = compute_path(&dtw, 4, 5);
