@@ -65,7 +65,7 @@ impl Display for Matrix {
 impl Matrix {
     pub fn new(i: usize, j: usize) -> Self {
         Self {
-            matrix: vec![Default::default(); i * j].into_boxed_slice(),
+            matrix: vec![f64::MAX; i * j].into_boxed_slice(),
             shape: (i, j),
         }
     }
@@ -91,7 +91,7 @@ mod tests {
     #[test]
     fn matrix_new() {
         let dtw = Matrix::new(3, 5);
-        assert!(dtw.matrix.iter().all(|f| *f == 0.0));
+        assert!(dtw.matrix.iter().all(|f| *f == f64::MAX));
         assert!(dtw.matrix.len() == 15);
         assert!(dtw.shape == (3, 5));
     }
@@ -158,7 +158,7 @@ mod tests {
                         if i == k && l == j {
                             assert!(dtw[(k, l)] == 1.0);
                         } else {
-                            assert!(dtw[(k, l)] == 0.0);
+                            assert!(dtw[(k, l)] == f64::MAX);
                         }
                     }
                 }
