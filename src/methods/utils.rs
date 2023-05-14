@@ -48,13 +48,17 @@ impl Display for Matrix {
         let pad = self
             .matrix
             .iter()
-            .map(|f| format!("{:.2}", f).len())
+            .map(|f| if f64::MAX==*f {3} else {format!("{:.2}", f).len()})
             .max()
             .unwrap()
             + 1;
         for i in 0..self.shape.0 {
             for j in 0..self.shape.1 {
-                write!(f, "{: >pad$.2}", self[(i, j)], pad = pad)?
+                if self[(i, j)] == f64::MAX {
+                    write!(f, "{: >pad$}", "inf", pad = pad)?
+                } else {
+                    write!(f, "{: >pad$.2}", self[(i, j)], pad = pad)?
+                }
             }
             writeln!(f)?
         }
