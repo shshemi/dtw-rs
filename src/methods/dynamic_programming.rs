@@ -1,11 +1,18 @@
-use std::fmt::Display;
+use std::{fmt::Display, usize};
 
 use super::utils::Matrix;
-use crate::DynamicTimeWarping;
+use crate::{DynamicTimeWarping, ParameterizedDynamicTimeWarping};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct DynamicProgramming {
     matrix: Matrix,
+}
+
+#[derive(Debug, PartialEq, Clone, Copy, Default)]
+pub enum Restriction {
+    #[default]
+    None,
+    Band(usize),
 }
 
 impl DynamicTimeWarping for DynamicProgramming {
@@ -23,6 +30,24 @@ impl DynamicTimeWarping for DynamicProgramming {
     fn path(&self) -> Vec<(usize, usize)> {
         let shape = self.matrix.shape();
         self.path_from(shape.0 - 1, shape.1 - 1)
+    }
+}
+
+impl ParameterizedDynamicTimeWarping for DynamicProgramming {
+    type Parameters = Restriction;
+
+    fn with_closure_and_hyper_parameters<T>(
+        a: &[T],
+        b: &[T],
+        distance: impl Fn(&T, &T) -> f64,
+        hyper_parameters: Self::Parameters,
+    ) -> Self {
+        let mut dp = DynamicProgramming::new(a.len(), b.len());
+        match hyper_parameters {
+            Restriction::None => compute_matrix(&mut dp.matrix, |i, j| distance(&a[i], &b[j])),
+            Restriction::Band(band) => compute_matrix_restricted_band(&mut dp.matrix, band, |i, j| distance(&a[i], &b[j])) 
+        };
+        dp
     }
 }
 
@@ -58,11 +83,31 @@ impl DynamicProgramming {
 fn compute_matrix(matrix: &mut Matrix, distance: impl Fn(usize, usize) -> f64) {
     for i in 0..matrix.shape().0 {
         for j in 0..matrix.shape().1 {
-            let d = distance(i, j);
-            let top = top_cost(matrix, i, j);
-            let left = left_cost(matrix, i, j);
-            let top_left = top_left_cost(matrix, i, j);
-            matrix[(i, j)] = d + min(top_left, top, left);
+            optimize(matrix, i, j, &distance);
+        }
+    }
+}
+fn compute_matrix_restricted_band(
+    matrix: &mut Matrix,
+    band: usize,
+    distance: impl Fn(usize, usize) -> f64,
+) {
+    let slope = matrix.shape().1 as f64 / matrix.shape().0 as f64;
+    let offset = [
+        matrix.shape().1 / matrix.shape().0 - 1,
+        matrix.shape().1 / matrix.shape().0 - 1,
+        band,
+    ]
+    .into_iter()
+    .max()
+    .unwrap();
+    for i in 0..matrix.shape().0 {
+        let s = f64::round(slope * i as f64) as usize;
+        let b = if s > offset { s - offset } else { 0 };
+        let e = usize::min(offset + s + 1, matrix.shape().1);
+        // let e = offset + f64::round(slope * i as f64) as usize + 1;
+        for j in b..e {
+            optimize(matrix, i, j, &distance);
         }
     }
 }
@@ -92,6 +137,15 @@ fn compute_path(dtw: &DynamicProgramming, i: usize, j: usize) -> Vec<(usize, usi
     }
     v.reverse();
     v
+}
+
+#[inline]
+fn optimize(matrix: &mut Matrix, i: usize, j: usize, distance: &impl Fn(usize, usize) -> f64) {
+    let d = distance(i, j);
+    let top = top_cost(matrix, i, j);
+    let left = left_cost(matrix, i, j);
+    let top_left = top_left_cost(matrix, i, j);
+    matrix[(i, j)] = d + min(top_left, top, left);
 }
 
 #[inline]
@@ -143,7 +197,12 @@ fn arg_min(a: f64, b: f64, c: f64) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::methods::utils::Matrix;
+    use crate::methods::{
+        dynamic_programming::{
+             compute_matrix_restricted_band,
+        },
+        utils::Matrix,
+    };
 
     use super::{compute_matrix, compute_path, DynamicProgramming};
 
@@ -165,6 +224,33 @@ mod tests {
         compute_matrix(&mut dtw.matrix, |i, j| f64::abs(a[i] - b[j]));
         println!("Matrix:");
         println!("{}", dtw.matrix);
+        assert!(dtw.matrix == expected_matrix);
+    }
+
+    #[test]
+    fn compute_matrix_restricted_band_with_example() {
+        let a = [0.0; 5];
+        let b = [0.0; 5];
+        let expected_matrix = Matrix::from(
+            &[
+                0.0, 0.0, f64::MAX, f64::MAX, f64::MAX,
+                0.0, 0.0, 0.0, f64::MAX, f64::MAX,
+                f64::MAX, 0.0, 0.0, 0.0, f64::MAX,
+                f64::MAX, f64::MAX, 0.0, 0.0, 0.0,
+                f64::MAX, f64::MAX, f64::MAX, 0.0, 0.0,
+            ],
+            5,
+            5,
+        );
+
+        let mut dtw = DynamicProgramming::new(a.len(), b.len());
+        compute_matrix_restricted_band(&mut dtw.matrix, 1, |i, j| f64::abs(a[i] - b[j]));
+        // println!("{}", dtw.matrix);
+        // println!("{:?}", dtw.matrix.data().iter().zip(expected_matrix.data().iter()).map(|(e1, e2)| e1 == e2).collect::<Vec<bool>>());
+        println!("Matrix:");
+        println!("{}", dtw.matrix);
+        println!("Expectation:");
+        println!("{}", expected_matrix);
         assert!(dtw.matrix == expected_matrix);
     }
 
