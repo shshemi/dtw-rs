@@ -1,4 +1,4 @@
 mod dynamic_programming;
 mod utils;
 
-pub use dynamic_programming::DynamicProgramming;
+pub use dynamic_programming::{DynamicProgramming, Restriction};
