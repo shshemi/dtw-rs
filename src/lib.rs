@@ -59,16 +59,6 @@ pub trait ParameterizedDynamicTimeWarping: DynamicTimeWarping {
         hyper_parameters: Self::Parameters,
     ) -> Self;
 
-    /// Calculate the dynamic time warping between sequences `a` and `b` according to the distance
-    /// closure `distance` with default hyper-parameters.
-    fn with_closure<T>(a: &[T], b: &[T], distance: impl Fn(&T, &T) -> f64) -> Self
-    where
-        Self::Parameters: Default,
-        Self: Sized,
-    {
-        Self::with_closure_and_hyper_parameters(a, b, distance, Self::Parameters::default())
-    }
-
     /// Calculate the dynamic time warping between sequences `a` and `b` according the implemented
     /// `Distance` trait and hyper-parameters `hyper_parameters`
     fn with_hyper_parameters<T>(a: &[T], b: &[T], hyper_parameters: Self::Parameters) -> Self
