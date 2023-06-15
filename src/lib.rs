@@ -5,6 +5,7 @@
 //!
 
 /// The module contains different implementaion of dynamic time warping.
-pub mod methods;
+mod algorithms;
 mod traits;
 pub use traits::{Distance, Algorithm, ParameterizedAlgorithm};
+pub use algorithms::{DynamicTimeWarping, Restriction};
