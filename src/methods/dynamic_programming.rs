@@ -1,10 +1,10 @@
 use std::{fmt::Display, usize};
 
 use super::utils::Matrix;
-use crate::{DynamicTimeWarping, ParameterizedDynamicTimeWarping};
+use crate::{Algorithm, ParameterizedAlgorithm};
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct DynamicProgramming {
+pub struct DynamicTimeWarping {
     matrix: Matrix,
 }
 
@@ -15,9 +15,9 @@ pub enum Restriction {
     Band(usize),
 }
 
-impl DynamicTimeWarping for DynamicProgramming {
+impl Algorithm for DynamicTimeWarping {
     fn with_closure<T>(a: &[T], b: &[T], distance: impl Fn(&T, &T) -> f64) -> Self {
-        let mut dp = DynamicProgramming::new(a.len(), b.len());
+        let mut dp = DynamicTimeWarping::new(a.len(), b.len());
         compute_matrix(&mut dp.matrix, |i, j| distance(&a[i], &b[j]));
         dp
     }
@@ -33,7 +33,7 @@ impl DynamicTimeWarping for DynamicProgramming {
     }
 }
 
-impl ParameterizedDynamicTimeWarping for DynamicProgramming {
+impl ParameterizedAlgorithm for DynamicTimeWarping {
     type Parameters = Restriction;
 
     fn with_closure_and_hyper_parameters<T>(
@@ -42,7 +42,7 @@ impl ParameterizedDynamicTimeWarping for DynamicProgramming {
         distance: impl Fn(&T, &T) -> f64,
         hyper_parameters: Self::Parameters,
     ) -> Self {
-        let mut dp = DynamicProgramming::new(a.len(), b.len());
+        let mut dp = DynamicTimeWarping::new(a.len(), b.len());
         match hyper_parameters {
             Restriction::None => compute_matrix(&mut dp.matrix, |i, j| distance(&a[i], &b[j])),
             Restriction::Band(band) => compute_matrix_restricted_band(&mut dp.matrix, band, |i, j| distance(&a[i], &b[j])) 
@@ -51,13 +51,13 @@ impl ParameterizedDynamicTimeWarping for DynamicProgramming {
     }
 }
 
-impl Display for DynamicProgramming {
+impl Display for DynamicTimeWarping {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Dynamic programming computation matrix: {}", self.matrix)
     }
 }
 
-impl DynamicProgramming {
+impl DynamicTimeWarping {
     pub fn path_from(&self, i: usize, j: usize) -> Vec<(usize, usize)> {
         let shape = self.matrix.shape();
         assert!(
@@ -73,8 +73,8 @@ impl DynamicProgramming {
         compute_path(self, i, j)
     }
 
-    fn new(i: usize, j: usize) -> DynamicProgramming {
-        DynamicProgramming {
+    fn new(i: usize, j: usize) -> DynamicTimeWarping {
+        DynamicTimeWarping {
             matrix: Matrix::new(i, j),
         }
     }
@@ -112,7 +112,7 @@ fn compute_matrix_restricted_band(
     }
 }
 
-fn compute_path(dtw: &DynamicProgramming, i: usize, j: usize) -> Vec<(usize, usize)> {
+fn compute_path(dtw: &DynamicTimeWarping, i: usize, j: usize) -> Vec<(usize, usize)> {
     let mut i = i;
     let mut j = j;
     let mut v = vec![(i, j)];
@@ -204,7 +204,7 @@ mod tests {
         utils::Matrix,
     };
 
-    use super::{compute_matrix, compute_path, DynamicProgramming};
+    use super::{compute_matrix, compute_path, DynamicTimeWarping};
 
     #[test]
     fn compute_matrix_with_example() {
@@ -220,7 +220,7 @@ mod tests {
             6,
         );
 
-        let mut dtw = DynamicProgramming::new(a.len(), b.len());
+        let mut dtw = DynamicTimeWarping::new(a.len(), b.len());
         compute_matrix(&mut dtw.matrix, |i, j| f64::abs(a[i] - b[j]));
         println!("Matrix:");
         println!("{}", dtw.matrix);
@@ -243,7 +243,7 @@ mod tests {
             5,
         );
 
-        let mut dtw = DynamicProgramming::new(a.len(), b.len());
+        let mut dtw = DynamicTimeWarping::new(a.len(), b.len());
         compute_matrix_restricted_band(&mut dtw.matrix, 1, |i, j| f64::abs(a[i] - b[j]));
         // println!("{}", dtw.matrix);
         // println!("{:?}", dtw.matrix.data().iter().zip(expected_matrix.data().iter()).map(|(e1, e2)| e1 == e2).collect::<Vec<bool>>());
@@ -256,7 +256,7 @@ mod tests {
 
     #[test]
     fn compute_path_with_example() {
-        let dtw = DynamicProgramming {
+        let dtw = DynamicTimeWarping {
             matrix: Matrix::from(
                 &[
                     1.0, 2.0, 3.0, 10.0, 16.0, 17.0, 2.0, 4.0, 5.0, 8.0, 12.0, 13.0, 9.0, 11.0,
@@ -275,6 +275,6 @@ mod tests {
     fn sized_send_sync_unpin_check<T: Sized + Send + Sync + Unpin>() {}
     #[test]
     fn check_auto_traits() {
-        sized_send_sync_unpin_check::<DynamicProgramming>()
+        sized_send_sync_unpin_check::<DynamicTimeWarping>()
     }
 }

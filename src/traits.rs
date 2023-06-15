@@ -1,7 +1,7 @@
 use std::ops::Sub;
 
 /// The trait is implemented by types which offer a calculation or estimation of the dynamic time warping problem.
-pub trait DynamicTimeWarping {
+pub trait Algorithm {
     /// Return the warped distance between the input sequences as a `f64`.
     fn distance(&self) -> f64;
 
@@ -38,7 +38,7 @@ pub trait DynamicTimeWarping {
 
 /// The trait is implemented by types which offer a more sophisticated calculation or estimation, which requires
 /// initial hyper-parameters, of the dynamic time warping problem.
-pub trait ParameterizedDynamicTimeWarping {
+pub trait ParameterizedAlgorithm {
     type Parameters;
 
     /// Calculate the dynamic time warping between sequences `a` and `b` according to the distance
