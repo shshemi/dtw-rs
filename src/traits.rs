@@ -1,4 +1,3 @@
-
 use std::ops::Sub;
 
 /// The trait is implemented by types which offer a calculation or estimation of the dynamic time warping problem.
@@ -39,7 +38,7 @@ pub trait DynamicTimeWarping {
 
 /// The trait is implemented by types which offer a more sophisticated calculation or estimation, which requires
 /// initial hyper-parameters, of the dynamic time warping problem.
-pub trait ParameterizedDynamicTimeWarping: DynamicTimeWarping {
+pub trait ParameterizedDynamicTimeWarping {
     type Parameters;
 
     /// Calculate the dynamic time warping between sequences `a` and `b` according to the distance
@@ -61,6 +60,7 @@ pub trait ParameterizedDynamicTimeWarping: DynamicTimeWarping {
         Self::with_closure_and_hyper_parameters(a, b, |a, b| a.distance(b), hyper_parameters)
     }
 }
+
 /// The trait should be implemented for custom types which are intented to be useded as the input for dynamic time
 /// warping without any distance closure.
 pub trait Distance {
