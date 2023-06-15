@@ -52,8 +52,8 @@ fn dynamic_programming_custom_distance() {
 fn dynamic_programming_band_restricted_distance_trait() {
     let a = [1.0, 3.0, 9.0, 2.0, 1.0].map(MockF64);
     let b = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0].map(MockF64);
-    let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (2, 4), (3, 5), (4, 5)];
-    let expected_distance = 9.0;
+    let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (3, 4), (4, 5)];
+    let expected_distance = 12.0;
 
     let dtw = DynamicProgramming::with_hyper_parameters(&a, &b, Restriction::Band(1));
     println!("Matrix:");
@@ -67,8 +67,8 @@ fn dynamic_programming_band_restricted_distance_trait() {
 fn dynamic_programming_band_restricted_custom_distance() {
     let a = [1.0, 3.0, 9.0, 2.0, 1.0];
     let b = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0];
-    let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (2, 4), (3, 5), (4, 5)];
-    let expected_distance = 9.0;
+    let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (3, 4), (4, 5)];
+    let expected_distance = 12.0;
 
     let dtw = DynamicProgramming::with_closure_and_hyper_parameters(
         &a,
