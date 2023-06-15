@@ -1,5 +1,5 @@
 use dtw_rs::{
-    methods::DynamicTimeWarping, methods::Restriction, Distance, Algorithm,
+    DynamicTimeWarping, Restriction, Distance, Algorithm,
     ParameterizedAlgorithm,
 };
 
