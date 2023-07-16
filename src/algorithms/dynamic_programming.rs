@@ -198,9 +198,8 @@ fn arg_min(a: f64, b: f64, c: f64) -> usize {
 #[cfg(test)]
 mod tests {
     use crate::algorithms::{
-        dynamic_programming::{
+        dynamic_programming::
              compute_matrix_restricted_band,
-        },
         utils::Matrix,
     };
 
