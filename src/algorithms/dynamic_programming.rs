@@ -34,13 +34,13 @@ impl Algorithm for DynamicTimeWarping {
 }
 
 impl ParameterizedAlgorithm for DynamicTimeWarping {
-    type Parameters = Restriction;
+    type Param = Restriction;
 
     fn with_closure_and_hyper_parameters<T>(
         a: &[T],
         b: &[T],
         distance: impl Fn(&T, &T) -> f64,
-        hyper_parameters: Self::Parameters,
+        hyper_parameters: Self::Param,
     ) -> Self {
         let mut dp = DynamicTimeWarping::new(a.len(), b.len());
         match hyper_parameters {

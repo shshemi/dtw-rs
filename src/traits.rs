@@ -1,19 +1,19 @@
 use std::ops::Sub;
 
-/// The trait is implemented by types which offer a calculation or estimation of the dynamic time warping problem.
+/// Compute the dynamic time warping of two sequence.
 pub trait Algorithm {
-    /// Return the warped distance between the input sequences as a `f64`.
+    /// Warped distance between the input sequences as a `f64`.
     fn distance(&self) -> f64;
 
-    /// Return the warped path between the input sequences as a `Vec<(usize, usize)>`.
+    /// Warped path between the input sequences as a `Vec<(usize, usize)>`.
     fn path(&self) -> Vec<(usize, usize)>;
 
-    /// Calculate the dynamic time warping between sequences `a` and `b` according to the distance
-    /// closure `distance`.
+    /// Dynamic time warping between sequences `a` and `b` according to the distance closure
+    /// `distance`.
     fn with_closure<T>(a: &[T], b: &[T], distance: impl Fn(&T, &T) -> f64) -> Self;
 
-    /// Calculate the dynamic time warping between sequences `a: &[T]` and `b: &[T]` according the
-    /// implemented `Distance` trait.
+    /// Dynamic time warping between sequences `a: &[T]` and `b: &[T]` according the implemented
+    /// `Distance` trait.
     fn between<T>(a: &[T], b: &[T]) -> Self
     where
         T: Distance,
@@ -21,49 +21,51 @@ pub trait Algorithm {
     {
         Self::with_closure(a, b, |a, b| a.distance(b))
     }
-
-    /// Calculate the dynamic time warping between sequences `a` and `b` while using the absolute
-    /// distance as the distance metric.
-    fn with_absolute_distance<T, O>(a: &[T], b: &[T]) -> Self
-    where
-        O: Into<f64>,
-        T: Sub<Output = O> + PartialOrd + Copy,
-        Self: Sized,
-    {
-        Self::with_closure(a, b, |a: &T, b: &T| {
-            if a > b { *a - *b } else { *b - *a }.into()
-        })
-    }
 }
 
-/// The trait is implemented by types which offer a more sophisticated calculation or estimation, which requires
-/// initial hyper-parameters, of the dynamic time warping problem.
+/// Compute the dynamic time warping of two sequence with initial hyper-parameters.
 pub trait ParameterizedAlgorithm {
-    type Parameters;
+    type Param;
 
-    /// Calculate the dynamic time warping between sequences `a` and `b` according to the distance
-    /// closure `distance` and hyper-parameters `hyper_parameters`.
+    /// Dynamic time warping between sequences `a` and `b` according to the distance closure
+    /// `distance` and parameters `param`.
     fn with_closure_and_hyper_parameters<T>(
         a: &[T],
         b: &[T],
         distance: impl Fn(&T, &T) -> f64,
-        hyper_parameters: Self::Parameters,
+        param: Self::Param,
     ) -> Self;
 
-    /// Calculate the dynamic time warping between sequences `a` and `b` according the implemented
-    /// `Distance` trait and hyper-parameters `hyper_parameters`
-    fn with_hyper_parameters<T>(a: &[T], b: &[T], hyper_parameters: Self::Parameters) -> Self
+    /// Dynamic time warping between sequences `a` and `b` according the implemented `Distance` trait
+    /// and hyper-parameters `param`
+    fn with_hyper_parameters<T>(a: &[T], b: &[T], param: Self::Param) -> Self
     where
         T: Distance,
         Self: Sized,
     {
-        Self::with_closure_and_hyper_parameters(a, b, |a, b| a.distance(b), hyper_parameters)
+        Self::with_closure_and_hyper_parameters(a, b, |a, b| a.distance(b), param)
     }
 }
 
-/// The trait should be implemented for custom types which are intented to be useded as the input for dynamic time
-/// warping without any distance closure.
+/// The distance between two type.
 pub trait Distance {
-    /// Return the distance between `self` and `other` as a `f64`.
+    /// Distance between `self` and `other` as a `f64`.
     fn distance(&self, other: &Self) -> f64;
+}
+
+/// Blanket implementation for primitive numerical types such as f32, f64, i32, and ...
+impl<T, O> Distance for T
+where
+    O: Into<f64>,
+    T: Sub<Output = O> + PartialOrd + Copy,
+    Self: Sized,
+{
+    fn distance(&self, other: &Self) -> f64 {
+        if self > other {
+            *self - *other
+        } else {
+            *other - *self
+        }
+        .into()
+    }
 }
