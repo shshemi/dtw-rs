@@ -4,6 +4,7 @@ use super::utils::Matrix;
 use crate::{Algorithm, ParameterizedAlgorithm};
 
 #[derive(Debug, PartialEq, Clone)]
+/// Dynamic time warping computation using the standard dynamic programming method.
 pub struct DynamicTimeWarping {
     matrix: Matrix,
 }
@@ -36,7 +37,7 @@ impl Algorithm for DynamicTimeWarping {
 impl ParameterizedAlgorithm for DynamicTimeWarping {
     type Param = Restriction;
 
-    fn with_closure_and_hyper_parameters<T>(
+    fn with_closure_and_param<T>(
         a: &[T],
         b: &[T],
         distance: impl Fn(&T, &T) -> f64,
@@ -45,7 +46,9 @@ impl ParameterizedAlgorithm for DynamicTimeWarping {
         let mut dp = DynamicTimeWarping::new(a.len(), b.len());
         match hyper_parameters {
             Restriction::None => compute_matrix(&mut dp.matrix, |i, j| distance(&a[i], &b[j])),
-            Restriction::Band(band) => compute_matrix_restricted_band(&mut dp.matrix, band, |i, j| distance(&a[i], &b[j])) 
+            Restriction::Band(band) => {
+                compute_matrix_restricted_band(&mut dp.matrix, band, |i, j| distance(&a[i], &b[j]))
+            }
         };
         dp
     }
@@ -197,11 +200,7 @@ fn arg_min(a: f64, b: f64, c: f64) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::algorithms::{
-        dynamic_programming::
-             compute_matrix_restricted_band,
-        utils::Matrix,
-    };
+    use crate::algorithms::{dynamic_programming::compute_matrix_restricted_band, utils::Matrix};
 
     use super::{compute_matrix, compute_path, DynamicTimeWarping};
 
@@ -232,11 +231,31 @@ mod tests {
         let b = [0.0; 5];
         let expected_matrix = Matrix::from(
             &[
-                0.0, 0.0, f64::MAX, f64::MAX, f64::MAX,
-                0.0, 0.0, 0.0, f64::MAX, f64::MAX,
-                f64::MAX, 0.0, 0.0, 0.0, f64::MAX,
-                f64::MAX, f64::MAX, 0.0, 0.0, 0.0,
-                f64::MAX, f64::MAX, f64::MAX, 0.0, 0.0,
+                0.0,
+                0.0,
+                f64::MAX,
+                f64::MAX,
+                f64::MAX,
+                0.0,
+                0.0,
+                0.0,
+                f64::MAX,
+                f64::MAX,
+                f64::MAX,
+                0.0,
+                0.0,
+                0.0,
+                f64::MAX,
+                f64::MAX,
+                f64::MAX,
+                0.0,
+                0.0,
+                0.0,
+                f64::MAX,
+                f64::MAX,
+                f64::MAX,
+                0.0,
+                0.0,
             ],
             5,
             5,

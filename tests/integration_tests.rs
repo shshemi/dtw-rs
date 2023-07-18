@@ -45,7 +45,7 @@ fn dynamic_time_warping_with_band_restriction() {
     let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (3, 4), (4, 5)];
     let expected_distance = 12.0;
 
-    let dtw = DynamicTimeWarping::with_hyper_parameters(&a, &b, Restriction::Band(1));
+    let dtw = DynamicTimeWarping::with_param(&a, &b, Restriction::Band(1));
 
     assert!(dtw.distance() == expected_distance);
     assert!(*dtw.path() == expected_path);
@@ -58,7 +58,7 @@ fn dynamic_time_warping_with_band_restricted_and_distance_closure() {
     let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (3, 4), (4, 5)];
     let expected_distance = 12.0;
 
-    let dtw = DynamicTimeWarping::with_closure_and_hyper_parameters(
+    let dtw = DynamicTimeWarping::with_closure_and_param(
         &a,
         &b,
         |a, b| f64::abs(a - b),
