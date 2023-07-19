@@ -1,6 +1,6 @@
 [package]
 name = "dtw_rs"
-version = "0.9.0"
+version = "0.9.1"
 edition = "2021"
 author = "Shayan Hashemi"
 keywords = ["dynamic","time", "warping", "dtw"]
