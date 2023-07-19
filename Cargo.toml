@@ -1,7 +1,13 @@
 [package]
 name = "dtw_rs"
-version = "0.1.0"
+version = "0.9.0"
 edition = "2021"
+author = "Shayan Hashemi"
+keywords = ["Dynamic Time Warping", "DTW"]
+homepage = "https://github.com/shshemi/dtw-rs"
+documentation = "https://github.com/shshemi/dtw-rs"
+repository = "https://github.com/shshemi/dtw-rs"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
