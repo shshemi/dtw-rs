@@ -8,6 +8,9 @@ homepage = "https://github.com/shshemi/dtw-rs"
 documentation = "https://github.com/shshemi/dtw-rs"
 repository = "https://github.com/shshemi/dtw-rs"
 readme = "README.md"
+description = "Dynamic Time Warping Library for Rust"
+license = "MIT"
+license-file = "LICENSE"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
