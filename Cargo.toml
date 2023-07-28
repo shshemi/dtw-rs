@@ -2,7 +2,7 @@
 name = "dtw_rs"
 version = "0.9.5"
 edition = "2021"
-author = "Shayan Hashemi"
+authors = ["Shayan Hashemi <shshemi@gmail.com>"]
 keywords = ["dynamic","time", "warping", "dtw"]
 homepage = "https://github.com/shshemi/dtw-rs"
 documentation = "https://docs.rs/dtw_rs/latest/dtw_rs/"
