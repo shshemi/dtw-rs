@@ -6,7 +6,7 @@ use crate::{Algorithm, ParameterizedAlgorithm};
 #[derive(Debug, PartialEq, Clone)]
 /// Dynamic time warping computation using the standard dynamic programming method.
 pub struct DynamicTimeWarping {
-    matrix: Matrix,
+    matrix: Matrix<f64>,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, Default)]
@@ -78,12 +78,12 @@ impl DynamicTimeWarping {
 
     fn new(i: usize, j: usize) -> DynamicTimeWarping {
         DynamicTimeWarping {
-            matrix: Matrix::new(i, j),
+            matrix: Matrix::fill(f64::MAX, i, j),
         }
     }
 }
 
-fn compute_matrix(matrix: &mut Matrix, distance: impl Fn(usize, usize) -> f64) {
+fn compute_matrix(matrix: &mut Matrix<f64>, distance: impl Fn(usize, usize) -> f64) {
     for i in 0..matrix.shape().0 {
         for j in 0..matrix.shape().1 {
             optimize(matrix, i, j, &distance);
@@ -91,7 +91,7 @@ fn compute_matrix(matrix: &mut Matrix, distance: impl Fn(usize, usize) -> f64) {
     }
 }
 fn compute_matrix_restricted_band(
-    matrix: &mut Matrix,
+    matrix: &mut Matrix<f64>,
     band: usize,
     distance: impl Fn(usize, usize) -> f64,
 ) {
@@ -143,7 +143,7 @@ fn compute_path(dtw: &DynamicTimeWarping, i: usize, j: usize) -> Vec<(usize, usi
 }
 
 #[inline]
-fn optimize(matrix: &mut Matrix, i: usize, j: usize, distance: &impl Fn(usize, usize) -> f64) {
+fn optimize(matrix: &mut Matrix<f64>, i: usize, j: usize, distance: &impl Fn(usize, usize) -> f64) {
     let d = distance(i, j);
     let top = top_cost(matrix, i, j);
     let left = left_cost(matrix, i, j);
@@ -152,7 +152,7 @@ fn optimize(matrix: &mut Matrix, i: usize, j: usize, distance: &impl Fn(usize, u
 }
 
 #[inline]
-fn top_cost(matrix: &Matrix, i: usize, j: usize) -> f64 {
+fn top_cost(matrix: &Matrix<f64>, i: usize, j: usize) -> f64 {
     if i == 0 {
         f64::INFINITY
     } else {
@@ -161,7 +161,7 @@ fn top_cost(matrix: &Matrix, i: usize, j: usize) -> f64 {
 }
 
 #[inline]
-fn left_cost(matrix: &Matrix, i: usize, j: usize) -> f64 {
+fn left_cost(matrix: &Matrix<f64>, i: usize, j: usize) -> f64 {
     if j == 0 {
         f64::INFINITY
     } else {
@@ -170,7 +170,7 @@ fn left_cost(matrix: &Matrix, i: usize, j: usize) -> f64 {
 }
 
 #[inline]
-fn top_left_cost(matrix: &Matrix, i: usize, j: usize) -> f64 {
+fn top_left_cost(matrix: &Matrix<f64>, i: usize, j: usize) -> f64 {
     if i == 0 && j == 0 {
         0.0
     } else if i == 0 || j == 0 {
@@ -209,7 +209,7 @@ mod tests {
         let a = [1.0, 3.0, 9.0, 2.0, 1.0];
         let b = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0];
         let expected_matrix = Matrix::from(
-            &[
+            vec![
                 1.0, 2.0, 3.0, 10.0, 16.0, 17.0, 2.0, 4.0, 5.0, 8.0, 12.0, 13.0, 9.0, 11.0, 13.0,
                 6.0, 8.0, 15.0, 9.0, 11.0, 13.0, 12.0, 11.0, 8.0, 10.0, 10.0, 11.0, 18.0, 17.0,
                 9.0,
@@ -230,7 +230,7 @@ mod tests {
         let a = [0.0; 5];
         let b = [0.0; 5];
         let expected_matrix = Matrix::from(
-            &[
+            vec![
                 0.0,
                 0.0,
                 f64::MAX,
@@ -276,7 +276,7 @@ mod tests {
     fn compute_path_with_example() {
         let dtw = DynamicTimeWarping {
             matrix: Matrix::from(
-                &[
+                vec![
                     1.0, 2.0, 3.0, 10.0, 16.0, 17.0, 2.0, 4.0, 5.0, 8.0, 12.0, 13.0, 9.0, 11.0,
                     13.0, 6.0, 8.0, 15.0, 9.0, 11.0, 13.0, 12.0, 11.0, 8.0, 10.0, 10.0, 11.0, 18.0,
                     17.0, 9.0,
