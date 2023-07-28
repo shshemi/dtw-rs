@@ -4,13 +4,13 @@ use std::{
 };
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Matrix {
-    matrix: Box<[f64]>,
+pub struct Matrix<T> {
+    matrix: Box<[T]>,
     shape: (usize, usize),
 }
 
-impl Index<(usize, usize)> for Matrix {
-    type Output = f64;
+impl<T> Index<(usize, usize)> for Matrix<T> {
+    type Output = T;
 
     fn index(&self, idx: (usize, usize)) -> &Self::Output {
         assert!(
@@ -27,7 +27,7 @@ impl Index<(usize, usize)> for Matrix {
     }
 }
 
-impl IndexMut<(usize, usize)> for Matrix {
+impl<T> IndexMut<(usize, usize)> for Matrix<T> {
     fn index_mut(&mut self, idx: (usize, usize)) -> &mut Self::Output {
         assert!(
             idx.0 < self.shape.0,
@@ -43,42 +43,46 @@ impl IndexMut<(usize, usize)> for Matrix {
     }
 }
 
-impl Display for Matrix {
+impl<T> Display for Matrix<T>
+where
+    T: Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let pad = self
-            .matrix
-            .iter()
-            .map(|f| if f64::MAX==*f {3} else {format!("{:.2}", f).len()})
-            .max()
-            .unwrap()
-            + 1;
         for i in 0..self.shape.0 {
             for j in 0..self.shape.1 {
-                if self[(i, j)] == f64::MAX {
-                    write!(f, "{: >pad$}", "inf", pad = pad)?
-                } else {
-                    write!(f, "{: >pad$.2}", self[(i, j)], pad = pad)?
-                }
+                self[(i, j)].fmt(f)?;
+                write!(f, " ")?;
             }
-            writeln!(f)?
+            writeln!(f)?;
         }
         Ok(())
     }
 }
 
-impl Matrix {
+impl<T> Matrix<T>
+where
+    T: Default + Clone,
+{
+    #[allow(dead_code)]
     pub fn new(i: usize, j: usize) -> Self {
         Self {
-            matrix: vec![f64::MAX; i * j].into_boxed_slice(),
+            matrix: vec![Default::default(); i * j].into_boxed_slice(),
+            shape: (i, j),
+        }
+    }
+
+    pub fn fill(value: T, i: usize, j: usize) -> Self {
+        Self {
+            matrix: vec![value; i * j].into_boxed_slice(),
             shape: (i, j),
         }
     }
 
     #[cfg(test)]
-    pub fn from(data: &[f64], i: usize, j: usize) -> Self {
+    pub fn from(data: Vec<T>, i: usize, j: usize) -> Self {
         assert!(data.len() == i * j);
         Self {
-            matrix: Box::from(data),
+            matrix: data.into_boxed_slice(),
             shape: (i, j),
         }
     }
@@ -94,15 +98,19 @@ mod tests {
 
     #[test]
     fn matrix_new() {
-        let dtw = Matrix::new(3, 5);
-        assert!(dtw.matrix.iter().all(|f| *f == f64::MAX));
+        let dtw = Matrix::<f64>::fill(0_f64, 3, 5);
         assert!(dtw.matrix.len() == 15);
         assert!(dtw.shape == (3, 5));
+        assert!(dtw.matrix.iter().all(|f| *f == 0_f64));
+        let dtw = Matrix::<f64>::fill(f64::MAX, 3, 5);
+        assert!(dtw.matrix.len() == 15);
+        assert!(dtw.shape == (3, 5));
+        assert!(dtw.matrix.iter().all(|f| *f == f64::MAX));
     }
 
     #[test]
     fn matrix_from() {
-        let matrix = Matrix::from(&[1_f64,2_f64,3_f64,4_f64, 5_f64, 6_f64], 2, 3);
+        let matrix = Matrix::from(vec![1_f64, 2_f64, 3_f64, 4_f64, 5_f64, 6_f64], 2, 3);
         assert!(matrix[(0, 0)] == 1_f64);
         assert!(matrix[(0, 1)] == 2_f64);
         assert!(matrix[(0, 2)] == 3_f64);
@@ -114,13 +122,12 @@ mod tests {
     #[test]
     #[should_panic]
     fn matrix_from_invalid_size() {
-        let matrix = Matrix::from(&[1_f64,2_f64,3_f64,4_f64, 5_f64], 2, 3);
+        let matrix = Matrix::from(vec![1_f64, 2_f64, 3_f64, 4_f64, 5_f64], 2, 3);
         assert!(matrix[(0, 0)] == 1_f64);
         assert!(matrix[(0, 1)] == 2_f64);
         assert!(matrix[(0, 2)] == 3_f64);
         assert!(matrix[(1, 0)] == 4_f64);
         assert!(matrix[(1, 1)] == 5_f64);
-
     }
 
     #[test]
@@ -139,14 +146,14 @@ mod tests {
     #[test]
     #[should_panic]
     fn matrix_access_out_of_index_0() {
-        let dtw = Matrix::new(2, 3);
+        let dtw = Matrix::fill(f64::MAX, 2, 3);
         assert!(f64::is_nan(dtw[(2, 0)]))
     }
 
     #[test]
     #[should_panic]
     fn matrix_access_out_of_index_1() {
-        let dtw = Matrix::new(2, 3);
+        let dtw = Matrix::fill(f64::MAX,2, 3);
         assert!(f64::is_nan(dtw[(0, 3)]));
     }
 
@@ -155,7 +162,7 @@ mod tests {
         const MATRIX_SIZE: usize = 5;
         for i in 0..MATRIX_SIZE {
             for j in 0..MATRIX_SIZE {
-                let mut dtw = Matrix::new(MATRIX_SIZE, MATRIX_SIZE);
+                let mut dtw = Matrix::fill(f64::MAX, MATRIX_SIZE, MATRIX_SIZE);
                 dtw[(i, j)] = 1.0;
                 for k in 0..MATRIX_SIZE {
                     for l in 0..MATRIX_SIZE {
@@ -172,7 +179,7 @@ mod tests {
 
     fn sized_send_sync_unpin_check<T: Sized + Send + Sync + Unpin>() {}
     #[test]
-    fn check_auto_traits() {
-        sized_send_sync_unpin_check::<Matrix>()
+    fn check_auto_traits<>() {
+        sized_send_sync_unpin_check::<Matrix<f64>>();
     }
 }
