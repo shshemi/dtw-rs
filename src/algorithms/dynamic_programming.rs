@@ -1,12 +1,12 @@
-use std::{fmt::Display, usize};
+use std::{cmp::min, fmt::Display, ops::Add, usize};
 
 use super::utils::Matrix;
 use crate::{Algorithm, ParameterizedAlgorithm};
 
 #[derive(Debug, PartialEq, Clone)]
 /// Dynamic time warping computation using the standard dynamic programming method.
-pub struct DynamicTimeWarping {
-    matrix: Matrix<f64>,
+pub struct DynamicTimeWarping<D> {
+    matrix: Matrix<D>,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, Default)]
@@ -16,16 +16,16 @@ pub enum Restriction {
     Band(usize),
 }
 
-impl Algorithm for DynamicTimeWarping {
-    fn with_closure<T>(a: &[T], b: &[T], distance: impl Fn(&T, &T) -> f64) -> Self {
+impl<D: PartialOrd + Clone + Default + Add<D, Output = D>> Algorithm<D> for DynamicTimeWarping<D> {
+    fn with_closure<T>(a: &[T], b: &[T], distance: impl Fn(&T, &T) -> D) -> Self {
         let mut dp = DynamicTimeWarping::new(a.len(), b.len());
         compute_matrix(&mut dp.matrix, |i, j| distance(&a[i], &b[j]));
         dp
     }
 
-    fn distance(&self) -> f64 {
+    fn distance(&self) -> D {
         let shape = self.matrix.shape();
-        self.matrix[(shape.0 - 1, shape.1 - 1)]
+        self.matrix[(shape.0 - 1, shape.1 - 1)].clone()
     }
 
     fn path(&self) -> Vec<(usize, usize)> {
@@ -34,13 +34,15 @@ impl Algorithm for DynamicTimeWarping {
     }
 }
 
-impl ParameterizedAlgorithm for DynamicTimeWarping {
+impl<D: PartialOrd + Clone + Default + Add<D, Output = D>> ParameterizedAlgorithm<D>
+    for DynamicTimeWarping<D>
+{
     type Param = Restriction;
 
     fn with_closure_and_param<T>(
         a: &[T],
         b: &[T],
-        distance: impl Fn(&T, &T) -> f64,
+        distance: impl Fn(&T, &T) -> D,
         hyper_parameters: Self::Param,
     ) -> Self {
         let mut dp = DynamicTimeWarping::new(a.len(), b.len());
@@ -54,13 +56,13 @@ impl ParameterizedAlgorithm for DynamicTimeWarping {
     }
 }
 
-impl Display for DynamicTimeWarping {
+impl<D: Display> Display for DynamicTimeWarping<D> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Dynamic programming computation matrix: {}", self.matrix)
     }
 }
 
-impl DynamicTimeWarping {
+impl<D: PartialOrd + Clone + Default> DynamicTimeWarping<D> {
     pub fn path_from(&self, i: usize, j: usize) -> Vec<(usize, usize)> {
         let shape = self.matrix.shape();
         assert!(
@@ -76,24 +78,27 @@ impl DynamicTimeWarping {
         compute_path(self, i, j)
     }
 
-    fn new(i: usize, j: usize) -> DynamicTimeWarping {
+    fn new(i: usize, j: usize) -> Self {
         DynamicTimeWarping {
-            matrix: Matrix::fill(f64::MAX, i, j),
+            matrix: Matrix::<D>::new(i, j),
         }
     }
 }
 
-fn compute_matrix(matrix: &mut Matrix<f64>, distance: impl Fn(usize, usize) -> f64) {
+fn compute_matrix<D: Clone + PartialOrd + Add<D, Output = D>>(
+    matrix: &mut Matrix<D>,
+    distance: impl Fn(usize, usize) -> D,
+) {
     for i in 0..matrix.shape().0 {
         for j in 0..matrix.shape().1 {
             optimize(matrix, i, j, &distance);
         }
     }
 }
-fn compute_matrix_restricted_band(
-    matrix: &mut Matrix<f64>,
+fn compute_matrix_restricted_band<D: Clone + PartialOrd + Add<D, Output = D>>(
+    matrix: &mut Matrix<D>,
     band: usize,
-    distance: impl Fn(usize, usize) -> f64,
+    distance: impl Fn(usize, usize) -> D,
 ) {
     let slope = matrix.shape().1 as f64 / matrix.shape().0 as f64;
     let offset = [
@@ -115,76 +120,89 @@ fn compute_matrix_restricted_band(
     }
 }
 
-fn compute_path(dtw: &DynamicTimeWarping, i: usize, j: usize) -> Vec<(usize, usize)> {
+fn compute_path<D>(dtw: &DynamicTimeWarping<D>, i: usize, j: usize) -> Vec<(usize, usize)>
+where
+    D: PartialOrd,
+{
     let mut i = i;
     let mut j = j;
     let mut v = vec![(i, j)];
     while i != 0 || j != 0 {
-        let top = top_cost(&dtw.matrix, i, j);
-        let left = left_cost(&dtw.matrix, i, j);
-        let top_left = top_left_cost(&dtw.matrix, i, j);
-        match arg_min(top_left, top, left) {
-            0 => {
-                i -= 1;
-                j -= 1;
-            }
-            1 => {
-                i -= 1;
-            }
-            2 => {
-                j -= 1;
-            }
-            _ => unimplemented!(),
+        if let Some((i_, j_)) = min_cost_index(&dtw.matrix, (i, j)) {
+            v.push((i_, j_));
+            i = i_;
+            j = j_;
+        } else {
+            break;
         };
-        v.push((i, j));
     }
     v.reverse();
     v
 }
 
 #[inline]
-fn optimize(matrix: &mut Matrix<f64>, i: usize, j: usize, distance: &impl Fn(usize, usize) -> f64) {
-    let d = distance(i, j);
-    let top = top_cost(matrix, i, j);
-    let left = left_cost(matrix, i, j);
-    let top_left = top_left_cost(matrix, i, j);
-    matrix[(i, j)] = d + min(top_left, top, left);
+fn optimize<D>(matrix: &mut Matrix<D>, i: usize, j: usize, distance: &impl Fn(usize, usize) -> D)
+where
+    D: Clone + PartialOrd + Add<D, Output = D>,
+{
+    // let d = distance(i, j);
+    matrix[(i, j)] = min_cost_index(matrix, (i, j))
+        .map(|index| distance(i, j) + matrix[index].clone())
+        .unwrap_or(distance(i, j));
 }
 
-#[inline]
-fn top_cost(matrix: &Matrix<f64>, i: usize, j: usize) -> f64 {
-    if i == 0 {
-        f64::INFINITY
+fn min_cost_index<D: PartialOrd>(
+    matrix: &Matrix<D>,
+    index: (usize, usize),
+) -> Option<(usize, usize)> {
+    let (i, j) = index;
+    if i != 0 && j != 0 {
+        match arg_min(
+            &matrix[(i - 1, j - 1)],
+            &matrix[(i - 1, j)],
+            &matrix[(i, j - 1)],
+        ) {
+            0 => Some((i - 1, j - 1)),
+            1 => Some((i - 1, j)),
+            2 => Some((i, j - 1)),
+            _ => panic!("I dont know what to say"),
+        }
+    } else if i != 0 {
+        Some((i - 1, j))
+    } else if j != 0 {
+        Some((i, j - 1))
     } else {
-        matrix[(i - 1, j)]
+        None
     }
 }
 
-#[inline]
-fn left_cost(matrix: &Matrix<f64>, i: usize, j: usize) -> f64 {
-    if j == 0 {
-        f64::INFINITY
-    } else {
-        matrix[(i, j - 1)]
-    }
-}
+// #[inline]
+// fn top_cost<D>(matrix: &Matrix<D>, i: usize, j: usize) -> D
+// where
+//     D: PartialOrd,
+// {
+//     matrix[(i - 1, j)]
+// }
+
+// #[inline]
+// fn left_cost<D>(matrix: &Matrix<D>, i: usize, j: usize) -> D
+// where
+//     D: PartialOrd,
+// {
+//     matrix[(i, j - 1)]
+// }
+
+// #[inline]
+// fn top_left_cost(matrix: &Matrix<D>, i: usize, j: usize) -> f64 {
+//     matrix[(i - 1, j - 1)]
+// }
+
+// fn min(a: f64, b: f64, c: f64) -> f64 {
+//     f64::min(a, f64::min(b, c))
+// }
 
 #[inline]
-fn top_left_cost(matrix: &Matrix<f64>, i: usize, j: usize) -> f64 {
-    if i == 0 && j == 0 {
-        0.0
-    } else if i == 0 || j == 0 {
-        f64::INFINITY
-    } else {
-        matrix[(i - 1, j - 1)]
-    }
-}
-
-fn min(a: f64, b: f64, c: f64) -> f64 {
-    f64::min(a, f64::min(b, c))
-}
-
-fn arg_min(a: f64, b: f64, c: f64) -> usize {
+fn arg_min<D: PartialOrd>(a: &D, b: &D, c: &D) -> usize {
     if a > b {
         if b > c {
             2
@@ -293,6 +311,6 @@ mod tests {
     fn sized_send_sync_unpin_check<T: Sized + Send + Sync + Unpin>() {}
     #[test]
     fn check_auto_traits() {
-        sized_send_sync_unpin_check::<DynamicTimeWarping>()
+        sized_send_sync_unpin_check::<DynamicTimeWarping<f64>>()
     }
 }

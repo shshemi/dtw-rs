@@ -59,19 +59,22 @@ where
     }
 }
 
-impl<T> Matrix<T>
-where
-    T: Default + Clone,
-{
+impl<T> Matrix<T> {
     #[allow(dead_code)]
-    pub fn new(i: usize, j: usize) -> Self {
+    pub fn new(i: usize, j: usize) -> Self
+    where
+        T: Clone + Default,
+    {
         Self {
             matrix: vec![Default::default(); i * j].into_boxed_slice(),
             shape: (i, j),
         }
     }
 
-    pub fn fill(value: T, i: usize, j: usize) -> Self {
+    pub fn fill(value: T, i: usize, j: usize) -> Self
+    where
+        T: Clone + Default,
+    {
         Self {
             matrix: vec![value; i * j].into_boxed_slice(),
             shape: (i, j),
@@ -153,7 +156,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn matrix_access_out_of_index_1() {
-        let dtw = Matrix::fill(f64::MAX,2, 3);
+        let dtw = Matrix::fill(f64::MAX, 2, 3);
         assert!(f64::is_nan(dtw[(0, 3)]));
     }
 
@@ -179,7 +182,7 @@ mod tests {
 
     fn sized_send_sync_unpin_check<T: Sized + Send + Sync + Unpin>() {}
     #[test]
-    fn check_auto_traits<>() {
+    fn check_auto_traits() {
         sized_send_sync_unpin_check::<Matrix<f64>>();
     }
 }
