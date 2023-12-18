@@ -5,7 +5,7 @@ use std::{
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Matrix<T> {
-    matrix: Box<[T]>,
+    data: Box<[T]>,
     shape: (usize, usize),
 }
 
@@ -23,7 +23,7 @@ impl<T> Index<(usize, usize)> for Matrix<T> {
             "Dimention 1 should be less than shape.1 = {}",
             self.shape.1
         );
-        &self.matrix[self.shape.1 * idx.0 + idx.1]
+        &self.data[self.shape.1 * idx.0 + idx.1]
     }
 }
 
@@ -39,7 +39,7 @@ impl<T> IndexMut<(usize, usize)> for Matrix<T> {
             "Dimention 1 should be less than shape.1 = {}",
             self.shape.1
         );
-        &mut self.matrix[self.shape.1 * idx.0 + idx.1]
+        &mut self.data[self.shape.1 * idx.0 + idx.1]
     }
 }
 
@@ -50,10 +50,10 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for i in 0..self.shape.0 {
             for j in 0..self.shape.1 {
-                self[(i, j)].fmt(f)?;
-                write!(f, " ")?;
+                // self[(i, j)].fmt(f)?;
+                write!(f, "{} ", self[(i, j)])?
             }
-            writeln!(f)?;
+            writeln!(f)?
         }
         Ok(())
     }
@@ -66,7 +66,7 @@ impl<T> Matrix<T> {
         T: Clone + Default,
     {
         Self {
-            matrix: vec![Default::default(); i * j].into_boxed_slice(),
+            data: vec![Default::default(); i * j].into_boxed_slice(),
             shape: (i, j),
         }
     }
@@ -76,7 +76,7 @@ impl<T> Matrix<T> {
         T: Clone + Default,
     {
         Self {
-            matrix: vec![value; i * j].into_boxed_slice(),
+            data: vec![value; i * j].into_boxed_slice(),
             shape: (i, j),
         }
     }
@@ -85,13 +85,25 @@ impl<T> Matrix<T> {
     pub fn from(data: Vec<T>, i: usize, j: usize) -> Self {
         assert!(data.len() == i * j);
         Self {
-            matrix: data.into_boxed_slice(),
+            data: data.into_boxed_slice(),
+            shape: (i, j),
+        }
+    }
+
+    pub fn from_iter(iter: impl Iterator<Item = T>, i: usize, j: usize) -> Self {
+        Self {
+            data: Box::from_iter(iter),
             shape: (i, j),
         }
     }
 
     pub fn shape(&self) -> (usize, usize) {
         self.shape
+    }
+
+    #[cfg(test)]
+    pub fn data(self) -> Box<[T]> {
+        self.data
     }
 }
 
@@ -102,13 +114,13 @@ mod tests {
     #[test]
     fn matrix_new() {
         let dtw = Matrix::<f64>::fill(0_f64, 3, 5);
-        assert!(dtw.matrix.len() == 15);
+        assert!(dtw.data.len() == 15);
         assert!(dtw.shape == (3, 5));
-        assert!(dtw.matrix.iter().all(|f| *f == 0_f64));
+        assert!(dtw.data.iter().all(|f| *f == 0_f64));
         let dtw = Matrix::<f64>::fill(f64::MAX, 3, 5);
-        assert!(dtw.matrix.len() == 15);
+        assert!(dtw.data.len() == 15);
         assert!(dtw.shape == (3, 5));
-        assert!(dtw.matrix.iter().all(|f| *f == f64::MAX));
+        assert!(dtw.data.iter().all(|f| *f == f64::MAX));
     }
 
     #[test]
@@ -136,7 +148,7 @@ mod tests {
     #[test]
     fn matrix_access_index() {
         let dtw = Matrix {
-            matrix: (1..26).map(|i| i as f64).collect(),
+            data: (1..26).map(|i| i as f64).collect(),
             shape: (5, 5),
         };
         for i in 0..dtw.shape.0 {

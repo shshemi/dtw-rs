@@ -34,8 +34,8 @@ fn dynamic_time_warping_with_distance_closure() {
 
     let dtw = DynamicTimeWarping::with_closure(&a, &b, |a, b| f64::abs(a - b));
 
-    assert!(dtw.distance() == expected_distance);
-    assert!(*dtw.path() == expected_path);
+    assert_eq!(dtw.distance(),expected_distance);
+    assert_eq!(*dtw.path(),expected_path);
 }
 
 #[test]
@@ -47,8 +47,8 @@ fn dynamic_time_warping_with_band_restriction() {
 
     let dtw = DynamicTimeWarping::with_param(&a, &b, Restriction::Band(1));
 
-    assert!(dtw.distance() == expected_distance);
-    assert!(*dtw.path() == expected_path);
+    assert_eq!(dtw.distance(), expected_distance);
+    assert_eq!(*dtw.path(), expected_path);
 }
 
 #[test]
@@ -65,8 +65,9 @@ fn dynamic_time_warping_with_band_restricted_and_distance_closure() {
         Restriction::Band(1),
     );
 
-    assert!(dtw.distance() == expected_distance);
-    assert!(*dtw.path() == expected_path);
+    println!("{}", dtw);
+    assert_eq!(dtw.distance(), expected_distance);
+    assert_eq!(*dtw.path(), expected_path);
 }
 
 #[inline]
