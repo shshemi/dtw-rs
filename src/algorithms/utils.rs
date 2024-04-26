@@ -90,6 +90,7 @@ impl<T> Matrix<T> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_iter(iter: impl Iterator<Item = T>, i: usize, j: usize) -> Self {
         Self {
             data: Box::from_iter(iter),
