@@ -7,6 +7,7 @@ use crate::{Algorithm, ParameterizedAlgorithm};
 /// Dynamic time warping computation using the standard dynamic programming method.
 pub struct DynamicTimeWarping<D> {
     matrix: Matrix<Element<D>>,
+    restriction: Restriction,
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -30,7 +31,17 @@ impl<D: PartialOrd + Clone + Default + Add<D, Output = D>> Algorithm<D> for Dyna
 
     fn distance(&self) -> D {
         let shape = self.matrix.shape();
-        match &self.matrix[(shape.0 - 1, shape.1 - 1)] {
+        let path_stop = match &self.restriction {
+            Restriction::None => (shape.0 - 1, shape.1 - 1),
+            Restriction::Band(band) => {
+                if shape.0 < shape.1 {
+                    (shape.0 - 1, (shape.1 - 1).min(shape.0 - 1 + band))
+                } else {
+                    ((shape.0 - 1).min(shape.1 - 1 + band), shape.1 - 1)
+                }
+            }
+        };
+        match &self.matrix[path_stop] {
             Element::Inf => panic!("Infinit distance"),
             Element::Value(v) => v.clone(),
         }
@@ -55,7 +66,10 @@ impl<D: PartialOrd + Clone + Default + Add<D, Output = D>> ParameterizedAlgorith
     ) -> Self {
         let mut mat = Matrix::fill(Element::Inf, a.len(), b.len());
         optimize_matrix(&mut mat, hyper_parameters, |i, j| distance(&a[i], &b[j]));
-        Self { matrix: mat }
+        Self {
+            matrix: mat,
+            restriction: hyper_parameters,
+        }
     }
 }
 
@@ -111,11 +125,12 @@ impl Restriction {
                         }
                     }
                     Restriction::Band(_) => {
-                        let (rb, re) = restriction.range(shape, i);
-                        if i == shape.0 - 1 && j == shape.1 - 1 {
+                        let (_, re) = restriction.range(shape, i);
+                        let (next_rb, _) = restriction.range(shape, i + 1);
+                        if (i == shape.0 - 1 && j == re - 1) || (next_rb >= shape.1) {
                             idx = None
-                        } else if j == re {
-                            idx = Some((i + 1, rb + 1));
+                        } else if j == re - 1 {
+                            idx = Some((i + 1, next_rb));
                         } else {
                             idx = Some((i, j + 1));
                         }
@@ -129,18 +144,13 @@ impl Restriction {
         .fuse()
     }
 
-    fn range(self, shape: (usize, usize), i: usize) -> (usize, usize) {
+    fn range(self, shape: (usize, usize), y: usize) -> (usize, usize) {
         match self {
             Restriction::None => (0, shape.1),
             Restriction::Band(size) => {
-                let n1 = shape.0 as f64;
-                let n2 = shape.1 as f64;
-                let i = i as f64;
-                let size = size as f64;
-                (
-                    (f64::floor(i * (n2 - 1_f64) / (n1 - 1_f64)) - size) as usize,
-                    (f64::ceil(i * (n2 - 1_f64) / (n1 - 1_f64)) + size) as usize,
-                )
+                let min = (y as f32 - size as f32).max(0.0) as usize;
+                let max = (y as f32 + size as f32 + 1.0).min(shape.1 as f32) as usize;
+                (min, max)
             }
         }
     }
@@ -271,10 +281,13 @@ fn arg_min<D: PartialOrd>(a: &D, b: &D, c: &D) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::{algorithms::{
-        dynamic_programming::{optimize_matrix, Element},
-        utils::Matrix,
-    }, Restriction};
+    use crate::{
+        algorithms::{
+            dynamic_programming::{optimize_matrix, Element},
+            utils::Matrix,
+        },
+        Restriction,
+    };
 
     use super::{compute_path, DynamicTimeWarping};
 
@@ -314,21 +327,25 @@ mod tests {
                 Element::Inf,
                 Element::Inf,
                 Element::Inf,
-                Element::Inf,
-                Element::Value(0.0),
-                Element::Value(0.0),
-                Element::Inf,
-                Element::Inf,
-                Element::Inf,
+                // Row change
                 Element::Value(0.0),
                 Element::Value(0.0),
                 Element::Value(0.0),
                 Element::Inf,
                 Element::Inf,
+                // Row change
                 Element::Inf,
                 Element::Value(0.0),
                 Element::Value(0.0),
                 Element::Value(0.0),
+                Element::Inf,
+                // Row change
+                Element::Inf,
+                Element::Inf,
+                Element::Value(0.0),
+                Element::Value(0.0),
+                Element::Value(0.0),
+                // Row change
                 Element::Inf,
                 Element::Inf,
                 Element::Inf,
@@ -338,6 +355,80 @@ mod tests {
             .into_iter(),
             5,
             5,
+        );
+
+        let mut mat = Matrix::fill(Element::Inf, a.len(), b.len());
+        optimize_matrix(&mut mat, crate::Restriction::Band(1), |i, j| {
+            f64::abs(a[i] - b[j])
+        });
+        // println!("{}", dtw.matrix);
+        // println!("{:?}", dtw.matrix.data().iter().zip(expected_matrix.data().iter()).map(|(e1, e2)| e1 == e2).collect::<Vec<bool>>());
+        println!("Matrix:");
+        println!("{}", mat);
+        println!("Expectation:");
+        println!("{}", expected_matrix);
+        // assert!(mat == expected_matrix);
+        for (e1, e2) in mat.data().iter().zip(expected_matrix.data().iter()) {
+            assert_eq!(e1, e2)
+        }
+    }
+    #[test]
+    fn compute_matrix_restricted_band_non_square_matrix() {
+        let a = [0.0; 4];
+        let b = [0.0; 2];
+        let expected_matrix = Matrix::from_iter(
+            vec![
+                Element::Value(0.0),
+                Element::Value(0.0),
+                // Row change
+                Element::Value(0.0),
+                Element::Value(0.0),
+                // Row change
+                Element::Inf,
+                Element::Value(0.0),
+                // Row change
+                Element::Inf,
+                Element::Inf,
+            ]
+            .into_iter(),
+            4,
+            2,
+        );
+
+        let mut mat = Matrix::fill(Element::Inf, a.len(), b.len());
+        optimize_matrix(&mut mat, crate::Restriction::Band(1), |i, j| {
+            f64::abs(a[i] - b[j])
+        });
+        // println!("{}", dtw.matrix);
+        // println!("{:?}", dtw.matrix.data().iter().zip(expected_matrix.data().iter()).map(|(e1, e2)| e1 == e2).collect::<Vec<bool>>());
+        println!("Matrix:");
+        println!("{}", mat);
+        println!("Expectation:");
+        println!("{}", expected_matrix);
+        // assert!(mat == expected_matrix);
+        for (e1, e2) in mat.data().iter().zip(expected_matrix.data().iter()) {
+            assert_eq!(e1, e2)
+        }
+    }
+    #[test]
+    fn compute_matrix_restricted_band_non_square_matrix_2() {
+        let a = [0.0; 2];
+        let b = [0.0; 4];
+        let expected_matrix = Matrix::from_iter(
+            vec![
+                Element::Value(0.0),
+                Element::Value(0.0),
+                Element::Inf,
+                Element::Inf,
+                // Row change
+                Element::Value(0.0),
+                Element::Value(0.0),
+                Element::Value(0.0),
+                Element::Inf,
+            ]
+            .into_iter(),
+            2,
+            4,
         );
 
         let mut mat = Matrix::fill(Element::Inf, a.len(), b.len());
@@ -388,10 +479,12 @@ mod tests {
         let restriction = Restriction::Band(1);
         let all_indices = no_rest.iter(shape).collect::<Vec<(usize, usize)>>();
         let band_indices = restriction.iter(shape).collect::<Vec<(usize, usize)>>();
-        for idx in all_indices.into_iter(){
-            assert_eq!(band_indices.contains(&idx), restriction.contains(idx, shape));
+        for idx in all_indices.into_iter() {
+            assert_eq!(
+                band_indices.contains(&idx),
+                restriction.contains(idx, shape)
+            );
         }
-        
     }
 
     fn sized_send_sync_unpin_check<T: Sized + Send + Sync + Unpin>() {}
