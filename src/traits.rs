@@ -33,7 +33,7 @@ macro_rules! impl_distance_int {
             impl Distance for $t {
                 type Output = $t;
                 fn distance(&self, other: &Self) -> Self::Output {
-                    (self - other).unsigned_abs() as $t
+                    (self - other).abs()
                 }
             }
         )*
