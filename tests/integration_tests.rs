@@ -29,19 +29,6 @@ fn dynamic_time_warping() {
 }
 
 #[test]
-fn dynamic_time_warping_with_distance_closure() {
-    let a = [1.0, 3.0, 9.0, 2.0, 1.0];
-    let b = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0];
-    let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (2, 4), (3, 5), (4, 5)];
-    let expected_distance = 9.0;
-
-    let dtw = dtw_with_distance(&a, &b, |a, b| f64::abs(a - b));
-
-    assert_eq!(dtw.distance(), expected_distance);
-    assert_eq!(dtw.path(), expected_path);
-}
-
-#[test]
 fn dtw_from_test_cases() {
     include_str!("dtw_test_cases.txt")
         .lines()
@@ -56,24 +43,11 @@ fn dtw_from_test_cases() {
                 .collect::<Vec<(usize, usize)>>();
             let expected_distance = chunk[4].parse::<f64>().unwrap();
 
-            let result = dtw::<f64, f64>(&a, &b);
+            let result = dtw(&a, &b);
 
             assert_approx_eq!(f64, result.distance(), expected_distance);
             assert_eq!(result.path(), expected_path);
         });
-}
-
-#[test]
-fn dtw_with_distance_trait() {
-    let a = [1.0_f64, 3.0, 9.0, 2.0, 1.0];
-    let b = [2.0_f64, 0.0, 0.0, 8.0, 7.0, 2.0];
-    let expected_path = [(0, 0), (0, 1), (1, 2), (2, 3), (2, 4), (3, 5), (4, 5)];
-    let expected_distance = 9.0;
-
-    let result = dtw::<f64, f64>(&a, &b);
-
-    assert_eq!(result.distance(), expected_distance);
-    assert_eq!(result.path(), expected_path);
 }
 
 #[test]
@@ -113,7 +87,7 @@ fn itakura_parallelogram_with_distance_trait() {
                 .collect::<Vec<(usize, usize)>>();
             let expected_distance = chunk[4].parse::<f64>().unwrap();
 
-            let result = itakura_parallelogram::<f64, f64>(&a, &b, 2.0);
+            let result = itakura_parallelogram(&a, &b, 2.0);
 
             assert_approx_eq!(f64, result.distance(), expected_distance);
             assert_eq!(result.path(), expected_path);
@@ -159,7 +133,7 @@ fn sakoe_chiba_with_distance_trait() {
             let expected_distance = chunk[4].parse::<f64>().unwrap();
             let window_size = chunk[5].parse::<usize>().unwrap();
 
-            let result = sakoe_chiba::<f64, f64>(&a, &b, window_size);
+            let result = sakoe_chiba(&a, &b, window_size);
 
             assert_approx_eq!(f64, result.distance(), expected_distance);
             assert_eq!(result.path(), expected_path);
