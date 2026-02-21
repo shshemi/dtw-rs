@@ -1,1 +1,2 @@
 pub mod dynamic_programming;
+pub mod itakura_parallelogram;
