@@ -133,8 +133,14 @@ where
     assert!(max_slope >= 1.0, "max_slope must be >= 1.0");
     let m = x.len();
     let n = y.len();
-    assert!(m >= 3, "x must have at least 3 elements for Itakura parallelogram");
-    assert!(n >= 3, "y must have at least 3 elements for Itakura parallelogram");
+    assert!(
+        m >= 3,
+        "x must have at least 3 elements for Itakura parallelogram"
+    );
+    assert!(
+        n >= 3,
+        "y must have at least 3 elements for Itakura parallelogram"
+    );
     let (min_slope, max_slope) = get_itakura_slopes(m, n, max_slope);
     let mut mat: Matrix<Option<D>> = Matrix::fill(None, m, n);
 

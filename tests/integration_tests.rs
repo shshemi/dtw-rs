@@ -1,6 +1,8 @@
 use std::str::FromStr;
 
-use dtw_rs::{Solution, dtw, dtw_with_distance, itakura_parallelogram, itakura_parallelogram_with_distance};
+use dtw_rs::{
+    Solution, dtw, dtw_with_distance, itakura_parallelogram, itakura_parallelogram_with_distance,
+};
 use float_cmp::assert_approx_eq;
 
 #[test]
