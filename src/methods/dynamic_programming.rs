@@ -17,20 +17,20 @@ impl<D: Clone + PartialOrd> Solution<D> for DtwSolution<D> {
         let mut path = vec![(m - 1, n - 1)];
         let (mut i, mut j) = (m - 1, n - 1);
         while i > 0 || j > 0 {
-            let next = if i == 0 {
-                (0, j - 1)
-            } else if j == 0 {
-                (i - 1, 0)
-            } else {
-                let diag = &self.mat[(i - 1, j - 1)];
-                let up = &self.mat[(i - 1, j)];
-                let left = &self.mat[(i, j - 1)];
-                if diag <= up && diag <= left {
-                    (i - 1, j - 1)
-                } else if up <= left {
-                    (i - 1, j)
-                } else {
-                    (i, j - 1)
+            let next = match (i, j) {
+                (0, j) => (0, j - 1),
+                (i, 0) => (i - 1, 0),
+                (i, j) => {
+                    let a = &self.mat[(i - 1, j - 1)];
+                    let b = &self.mat[(i - 1, j)];
+                    let c = &self.mat[(i, j - 1)];
+                    if a <= b && a <= c {
+                        (i - 1, j - 1)
+                    } else if b <= c {
+                        (i - 1, j)
+                    } else {
+                        (i, j - 1)
+                    }
                 }
             };
             path.push(next);
