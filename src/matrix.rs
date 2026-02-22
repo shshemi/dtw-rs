@@ -61,13 +61,13 @@ where
 
 impl<T> Matrix<T> {
     #[allow(dead_code)]
-    pub fn new(i: usize, j: usize) -> Self
+    pub fn new(width: usize, height: usize) -> Self
     where
         T: Clone + Default,
     {
         Self {
-            data: vec![Default::default(); i * j].into_boxed_slice(),
-            shape: (i, j),
+            data: vec![Default::default(); width * height].into_boxed_slice(),
+            shape: (width, height),
         }
     }
 
@@ -81,6 +81,10 @@ impl<T> Matrix<T> {
         }
     }
 
+    pub fn shape(&self) -> (usize, usize) {
+        self.shape
+    }
+
     #[cfg(test)]
     pub fn from(data: Vec<T>, i: usize, j: usize) -> Self {
         assert!(data.len() == i * j);
@@ -90,16 +94,12 @@ impl<T> Matrix<T> {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn from_iter(iter: impl Iterator<Item = T>, i: usize, j: usize) -> Self {
         Self {
             data: Box::from_iter(iter),
             shape: (i, j),
         }
-    }
-
-    pub fn shape(&self) -> (usize, usize) {
-        self.shape
     }
 
     #[cfg(test)]
