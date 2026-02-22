@@ -3,6 +3,7 @@ use std::ops::Add;
 
 use crate::traits::{Distance, Midpoint, Solution};
 
+/// Result of a FastDTW computation. Implements [`Solution`].
 pub struct FastDtwSolution<D> {
     dist: D,
     warping_path: Vec<(usize, usize)>,
@@ -181,6 +182,40 @@ where
     windowed_dtw(x, y, &window, distance)
 }
 
+/// Computes an approximate DTW using FastDTW with custom distance and coarsening functions.
+///
+/// This is the same as [`fastdtw`] but accepts closures for both element-wise
+/// distance computation and sequence coarsening (averaging adjacent pairs).
+///
+/// # Arguments
+///
+/// * `radius` — Controls the size of the neighborhood around the projected path.
+///   Larger values improve accuracy at the cost of speed.
+/// * `distance` — A closure `(&T, &T) -> D` computing the distance between two elements.
+/// * `coarsen` — A closure `(&T, &T) -> T` computing the midpoint of two elements,
+///   used when halving the sequences during recursive coarsening.
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{fastdtw_with_distance, Solution};
+///
+/// let x = [1.0_f64, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0_f64, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// let result = fastdtw_with_distance(
+///     &x, &y, 1,
+///     |a, b| (a - b).abs(),
+///     |a, b| (a + b) / 2.0,
+/// );
+/// let distance: f64 = result.distance();
+/// assert!(!result.path().is_empty());
+/// ```
+///
+/// # Complexity
+///
+/// Approximately O(n) time and space for well-behaved inputs, where n is the
+/// length of the longer sequence.
 pub fn fastdtw_with_distance<T, D>(
     x: &[T],
     y: &[T],
@@ -195,6 +230,40 @@ where
     FastDtwSolution { dist, warping_path }
 }
 
+/// Computes an approximate DTW distance and path using the FastDTW algorithm.
+///
+/// FastDTW recursively coarsens both sequences, computes DTW on the reduced
+/// version, then projects and refines the warping path at each level. This
+/// achieves approximately linear time complexity instead of the quadratic cost
+/// of standard [`dtw`](crate::dtw).
+///
+/// Element distances are computed using the [`Distance`] trait and coarsening
+/// uses the [`Midpoint`] trait.
+///
+/// # Arguments
+///
+/// * `radius` — Controls the size of the neighborhood around the projected path.
+///   Larger values improve accuracy at the cost of speed. A radius of 1 is
+///   typically sufficient.
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{fastdtw, Solution};
+///
+/// let x = [1.0_f64, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0_f64, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// let result = fastdtw(&x, &y, 1);
+/// let distance: f64 = result.distance();
+/// let path = result.path();
+/// assert_eq!(path[0], (0, 0));
+/// ```
+///
+/// # Complexity
+///
+/// Approximately O(n) time and space for well-behaved inputs, where n is the
+/// length of the longer sequence.
 pub fn fastdtw<T, D>(x: &[T], y: &[T], radius: usize) -> FastDtwSolution<D>
 where
     T: Distance<Output = D> + Midpoint,

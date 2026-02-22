@@ -2,6 +2,7 @@ use std::ops::Add;
 
 use crate::{Distance, Solution, matrix::Matrix};
 
+/// Result of an Itakura parallelogram–constrained DTW computation. Implements [`Solution`].
 pub struct ItakuraParallelogramSolution<D> {
     mat: Matrix<Option<D>>,
 }
@@ -121,6 +122,33 @@ fn valid_column_range(
     (j_min, j_max)
 }
 
+/// Computes DTW with an Itakura parallelogram constraint using a custom distance function.
+///
+/// This is the same as [`itakura_parallelogram`] but accepts a closure for
+/// computing element-wise distances.
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{itakura_parallelogram_with_distance, Solution};
+///
+/// let x = [1.0, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// let result = itakura_parallelogram_with_distance(&x, &y, 2.0, |a: &f64, b: &f64| (a - b).abs());
+/// let distance: f64 = result.distance();
+/// assert!(!result.path().is_empty());
+/// ```
+///
+/// # Panics
+///
+/// - If `max_slope < 1.0`.
+/// - If `x` or `y` has fewer than 3 elements.
+///
+/// # Complexity
+///
+/// O(n * m) time in the worst case, but typically explores fewer cells than
+/// unconstrained DTW due to the parallelogram constraint.
 pub fn itakura_parallelogram_with_distance<T, D>(
     x: &[T],
     y: &[T],
@@ -179,6 +207,40 @@ where
     ItakuraParallelogramSolution { mat }
 }
 
+/// Computes DTW with an Itakura parallelogram constraint.
+///
+/// Restricts the warping path to a parallelogram-shaped region controlled by
+/// `max_slope`, preventing excessive compression or stretching of the alignment.
+/// Element distances are computed using the [`Distance`] trait.
+///
+/// # Arguments
+///
+/// * `max_slope` — Controls the parallelogram shape. Must be `>= 1.0`. Higher
+///   values allow more warping flexibility; `1.0` is the most restrictive.
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{itakura_parallelogram, Solution};
+///
+/// let x = [1.0_f64, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0_f64, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// let result = itakura_parallelogram(&x, &y, 2.0);
+/// let distance: f64 = result.distance();
+/// let path = result.path();
+/// assert_eq!(path[0], (0, 0));
+/// ```
+///
+/// # Panics
+///
+/// - If `max_slope < 1.0`.
+/// - If `x` or `y` has fewer than 3 elements.
+///
+/// # Complexity
+///
+/// O(n * m) time in the worst case, but typically explores fewer cells than
+/// unconstrained DTW due to the parallelogram constraint.
 pub fn itakura_parallelogram<T, D>(
     x: &[T],
     y: &[T],

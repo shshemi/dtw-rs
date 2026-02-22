@@ -2,6 +2,7 @@ use std::ops::Add;
 
 use crate::{Distance, Solution, matrix::Matrix};
 
+/// Result of a Sakoe-Chiba band–constrained DTW computation. Implements [`Solution`].
 pub struct SakoeChibaSolution<D> {
     mat: Matrix<Option<D>>,
 }
@@ -122,6 +123,32 @@ fn valid_column_range(i: usize, m: usize, n: usize, window_size: usize) -> (usiz
     (j_min, j_max)
 }
 
+/// Computes DTW with a Sakoe-Chiba band constraint using a custom distance function.
+///
+/// This is the same as [`sakoe_chiba`] but accepts a closure for computing
+/// element-wise distances.
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{sakoe_chiba_with_distance, Solution};
+///
+/// let x = [1.0, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// let result = sakoe_chiba_with_distance(&x, &y, 1, |a: &f64, b: &f64| (a - b).abs());
+/// let distance: f64 = result.distance();
+/// assert!(!result.path().is_empty());
+/// ```
+///
+/// # Panics
+///
+/// - If `x` or `y` has fewer than 2 elements.
+/// - If `window_size >= max(len(x), len(y))`.
+///
+/// # Complexity
+///
+/// O(n * w) time, where n is the longer sequence length and w is the window size.
 pub fn sakoe_chiba_with_distance<T, D>(
     x: &[T],
     y: &[T],
@@ -178,6 +205,39 @@ where
     SakoeChibaSolution { mat }
 }
 
+/// Computes DTW with a Sakoe-Chiba band constraint.
+///
+/// Restricts the warping path to stay within `window_size` of the diagonal,
+/// reducing computation compared to unconstrained [`dtw`](crate::dtw). Element
+/// distances are computed using the [`Distance`] trait.
+///
+/// # Arguments
+///
+/// * `window_size` — Maximum allowed deviation from the diagonal. Smaller values
+///   are faster but more restrictive.
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{sakoe_chiba, Solution};
+///
+/// let x = [1.0_f64, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0_f64, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// let result = sakoe_chiba(&x, &y, 1);
+/// let distance: f64 = result.distance();
+/// let path = result.path();
+/// assert_eq!(path[0], (0, 0));
+/// ```
+///
+/// # Panics
+///
+/// - If `x` or `y` has fewer than 2 elements.
+/// - If `window_size >= max(len(x), len(y))`.
+///
+/// # Complexity
+///
+/// O(n * w) time, where n is the longer sequence length and w is the window size.
 pub fn sakoe_chiba<T, D>(
     x: &[T],
     y: &[T],

@@ -1,16 +1,34 @@
-/// Compute the dynamic time warping of two sequence.
+/// The result of a DTW computation, providing the warping distance and path.
+///
+/// All four algorithm result types (`DtwSolution`, `SakoeChibaSolution`,
+/// `ItakuraParallelogramSolution`, `FastDtwSolution`) implement this trait.
 pub trait Solution<D> {
-    /// Warped distance between `a` and `b`.
+    /// Returns the accumulated warping distance between the two input sequences.
     fn distance(&self) -> D;
 
-    /// Warped path between `a` and `b`.
+    /// Returns the optimal warping path as a list of index pairs.
+    ///
+    /// Each element `(i, j)` in the returned vector represents a match between
+    /// index `i` in the first sequence and index `j` in the second sequence.
+    /// The path starts at `(0, 0)` and ends at `(len_x - 1, len_y - 1)`.
     fn path(&self) -> Vec<(usize, usize)>;
 }
 
-/// An arbitrary distance between two objects.
+/// A distance metric between two values of the same type.
+///
+/// This trait is used by the default (non-`_with_distance`) algorithm functions
+/// to compute element-wise distances. Built-in implementations are provided for:
+///
+/// - **Floating-point types** (`f32`, `f64`) — absolute difference
+/// - **Signed integers** (`i8`, `i16`, `i32`, `i64`, `i128`, `isize`) — absolute difference
+/// - **Unsigned integers** (`u8`, `u16`, `u32`, `u64`, `u128`, `usize`) — absolute difference
+///
+/// Implement this trait for custom types, or use the `_with_distance` variants
+/// to supply a closure instead.
 pub trait Distance {
+    /// The type returned by the distance computation.
     type Output;
-    /// Distance between `self` and `other`.
+    /// Returns the distance between `self` and `other`.
     fn distance(&self, other: &Self) -> Self::Output;
 }
 
@@ -57,8 +75,13 @@ impl_distance_float!(f32, f64);
 impl_distance_int!(i8, i16, i32, i64, i128, isize);
 impl_distance_unsigned!(u8, u16, u32, u64, u128, usize);
 
-/// Compute the midpoint of two values (used for coarsening in FastDTW).
+/// Computes the midpoint of two values, used for coarsening sequences in [`fastdtw`](crate::fastdtw).
+///
+/// When FastDTW recursively halves the input sequences, it averages adjacent
+/// pairs of elements using this trait. Built-in implementations are provided for
+/// all standard numeric types (`f32`, `f64`, `i8`–`i128`, `u8`–`u128`, `isize`, `usize`).
 pub trait Midpoint {
+    /// Returns the midpoint (average) of `self` and `other`.
     fn midpoint(&self, other: &Self) -> Self;
 }
 

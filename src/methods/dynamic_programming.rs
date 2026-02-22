@@ -2,6 +2,7 @@ use std::ops::Add;
 
 use crate::{Distance, Solution, matrix::Matrix};
 
+/// Result of a standard DTW computation. Implements [`Solution`].
 pub struct DtwSolution<D> {
     mat: Matrix<D>,
 }
@@ -42,6 +43,28 @@ impl<D: Clone + PartialOrd> Solution<D> for DtwSolution<D> {
     }
 }
 
+/// Computes DTW between two sequences using a custom distance function.
+///
+/// This is the same as [`dtw`] but accepts a closure for computing element-wise
+/// distances, allowing arbitrary distance metrics (e.g., squared Euclidean).
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{dtw_with_distance, Solution};
+///
+/// let x = [1.0, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// let result = dtw_with_distance(&x, &y, |a: &f64, b: &f64| (a - b).powi(2));
+/// let distance: f64 = result.distance();
+/// let path = result.path();
+/// assert!(!path.is_empty());
+/// ```
+///
+/// # Complexity
+///
+/// O(n * m) time and space, where n and m are the lengths of `x` and `y`.
 pub fn dtw_with_distance<T, D>(x: &[T], y: &[T], distance: impl Fn(&T, &T) -> D) -> DtwSolution<D>
 where
     D: PartialOrd + Add<Output = D> + Default + Clone,
@@ -82,6 +105,28 @@ where
     DtwSolution { mat }
 }
 
+/// Computes the Dynamic Time Warping distance and path between two sequences.
+///
+/// Uses the standard dynamic programming algorithm with no constraints on the
+/// warping path. Element distances are computed using the [`Distance`] trait.
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{dtw, Solution};
+///
+/// let x = [1.0_f64, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0_f64, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// let result = dtw(&x, &y);
+/// let distance: f64 = result.distance();
+/// let path = result.path();
+/// assert_eq!(path[0], (0, 0));
+/// ```
+///
+/// # Complexity
+///
+/// O(n * m) time and space, where n and m are the lengths of `x` and `y`.
 pub fn dtw<T, D>(x: &[T], y: &[T]) -> DtwSolution<D>
 where
     T: Distance<Output = D>,
