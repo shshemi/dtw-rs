@@ -10,8 +10,7 @@ repository = "https://github.com/shshemi/dtw-rs"
 readme = "README.md"
 description = "A zero-dependency Dynamic Time Warping (DTW) library for Rust"
 license-file = "LICENSE"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+exclude = [".github/", "tests/"]
 
 [dependencies]
 
