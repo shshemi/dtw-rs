@@ -93,19 +93,6 @@ impl<T> Matrix<T> {
             shape: (i, j),
         }
     }
-
-    #[cfg(test)]
-    pub fn from_iter(iter: impl Iterator<Item = T>, i: usize, j: usize) -> Self {
-        Self {
-            data: Box::from_iter(iter),
-            shape: (i, j),
-        }
-    }
-
-    #[cfg(test)]
-    pub fn data(self) -> Box<[T]> {
-        self.data
-    }
 }
 
 #[cfg(test)]
