@@ -16,8 +16,4 @@ license-file = "LICENSE"
 [dependencies]
 
 [dev-dependencies]
-<<<<<<< HEAD
 float-cmp = "0.9.0"
-=======
-float-cmp = "0.9.0"
->>>>>>> feature/new-structure
