@@ -1,69 +1,113 @@
-use std::ops::Sub;
+/// The result of a DTW computation, providing the warping distance and path.
+///
+/// All four algorithm result types (`DtwSolution`, `SakoeChibaSolution`,
+/// `ItakuraParallelogramSolution`, `FastDtwSolution`) implement this trait.
+pub trait Solution<D> {
+    /// Returns the accumulated warping distance between the two input sequences.
+    fn distance(&self) -> D;
 
-/// Compute the dynamic time warping of two sequence.
-pub trait Algorithm<O> {
-    /// Warped distance between `a` and `b`.
-    fn distance(&self) -> O;
-
-    /// Warped path between `a` and `b`.
+    /// Returns the optimal warping path as a list of index pairs.
+    ///
+    /// Each element `(i, j)` in the returned vector represents a match between
+    /// index `i` in the first sequence and index `j` in the second sequence.
+    /// The path starts at `(0, 0)` and ends at `(len_x - 1, len_y - 1)`.
     fn path(&self) -> Vec<(usize, usize)>;
-
-    /// Dynamic time warping between sequences `a` and `b` using the distance closure `distance`.
-    fn with_closure<T>(a: &[T], b: &[T], distance: impl Fn(&T, &T) -> O) -> Self;
-
-    /// Dynamic time warping between sequences `a` and `b`
-    fn between<T>(a: &[T], b: &[T]) -> Self
-    where
-        T: Distance<O>,
-        Self: Sized,
-    {
-        Self::with_closure(a, b, |a, b| a.distance(b))
-    }
 }
 
-/// Compute the dynamic time warping of two sequence with initial hyper-parameters.
-pub trait ParameterizedAlgorithm<D> {
-    type Param;
-
-    /// Dynamic time warping between sequences `a` and `b` using the distance closure `distance`
-    /// and parameter `param`.
-    fn with_closure_and_param<T>(
-        a: &[T],
-        b: &[T],
-        distance: impl Fn(&T, &T) -> D,
-        param: Self::Param,
-    ) -> Self;
-
-    /// Dynamic time warping between sequences `a` and `b` using the parameter `param`
-    fn with_param<T>(a: &[T], b: &[T], param: Self::Param) -> Self
-    where
-        T: Distance<D>,
-        Self: Sized,
-    {
-        Self::with_closure_and_param(a, b, |a, b| a.distance(b), param)
-    }
+/// A distance metric between two values of the same type.
+///
+/// This trait is used by the default (non-`_with_distance`) algorithm functions
+/// to compute element-wise distances. Built-in implementations are provided for:
+///
+/// - **Floating-point types** (`f32`, `f64`) — absolute difference
+/// - **Signed integers** (`i8`, `i16`, `i32`, `i64`, `i128`, `isize`) — absolute difference
+/// - **Unsigned integers** (`u8`, `u16`, `u32`, `u64`, `u128`, `usize`) — absolute difference
+///
+/// Implement this trait for custom types, or use the `_with_distance` variants
+/// to supply a closure instead.
+pub trait Distance {
+    /// The type returned by the distance computation.
+    type Output;
+    /// Returns the distance between `self` and `other`.
+    fn distance(&self, other: &Self) -> Self::Output;
 }
 
-/// An arbitrary distance between two objects.
-pub trait Distance<O>
-{
-    /// Distance between `self` and `other`.
-    fn distance(&self, other: &Self) -> O;
+macro_rules! impl_distance_float {
+    ($($t:ty),*) => {
+        $(
+            impl Distance for $t {
+                type Output = $t;
+                fn distance(&self, other: &Self) -> Self::Output {
+                    (self - other).abs()
+                }
+            }
+        )*
+    };
 }
 
-impl<T, O> Distance<O> for T
-where
-    O: PartialOrd,
-    T: Sub<Output = O> + PartialOrd + Copy,
-    Self: Sized,
-{
-    fn distance(&self, other: &Self) -> O {
-        if self > other {
-            *self - *other
-        } else {
-            *other - *self
-        }
-        // .into()
-    }
-
+macro_rules! impl_distance_int {
+    ($($t:ty),*) => {
+        $(
+            impl Distance for $t {
+                type Output = $t;
+                fn distance(&self, other: &Self) -> Self::Output {
+                    (self - other).abs()
+                }
+            }
+        )*
+    };
 }
+
+macro_rules! impl_distance_unsigned {
+    ($($t:ty),*) => {
+        $(
+            impl Distance for $t {
+                type Output = $t;
+                fn distance(&self, other: &Self) -> Self::Output {
+                    self.abs_diff(*other)
+                }
+            }
+        )*
+    };
+}
+
+impl_distance_float!(f32, f64);
+impl_distance_int!(i8, i16, i32, i64, i128, isize);
+impl_distance_unsigned!(u8, u16, u32, u64, u128, usize);
+
+/// Computes the midpoint of two values, used for coarsening sequences in [`fastdtw`](crate::fastdtw).
+///
+/// When FastDTW recursively halves the input sequences, it averages adjacent
+/// pairs of elements using this trait. Built-in implementations are provided for
+/// all standard numeric types (`f32`, `f64`, `i8`–`i128`, `u8`–`u128`, `isize`, `usize`).
+pub trait Midpoint {
+    /// Returns the midpoint (average) of `self` and `other`.
+    fn midpoint(&self, other: &Self) -> Self;
+}
+
+macro_rules! impl_midpoint_float {
+    ($($t:ty),*) => {
+        $(
+            impl Midpoint for $t {
+                fn midpoint(&self, other: &Self) -> Self {
+                    (self + other) / 2.0
+                }
+            }
+        )*
+    };
+}
+
+macro_rules! impl_midpoint_int {
+    ($($t:ty),*) => {
+        $(
+            impl Midpoint for $t {
+                fn midpoint(&self, other: &Self) -> Self {
+                    (self + other) / 2
+                }
+            }
+        )*
+    };
+}
+
+impl_midpoint_float!(f32, f64);
+impl_midpoint_int!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize);
