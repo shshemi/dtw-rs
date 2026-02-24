@@ -273,3 +273,18 @@ where
 {
     fastdtw_with_distance(x, y, radius, |a, b| a.distance(b), |a, b| a.midpoint(b))
 }
+
+#[cfg(all(test, feature = "serde"))]
+mod serde_tests {
+    use super::*;
+
+    #[test]
+    fn serde_roundtrip() {
+        let x = [1.0_f64, 3.0, 9.0, 2.0, 1.0];
+        let y = [2.0_f64, 0.0, 0.0, 8.0, 7.0, 2.0];
+        let solution: FastDtwSolution<f64> = fastdtw(&x, &y, 1);
+        let json = serde_json::to_string(&solution).unwrap();
+        let deserialized: FastDtwSolution<f64> = serde_json::from_str(&json).unwrap();
+        assert_eq!(solution, deserialized);
+    }
+}

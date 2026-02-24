@@ -186,4 +186,13 @@ mod tests {
     fn check_auto_traits() {
         sized_send_sync_unpin_check::<Matrix<f64>>();
     }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_roundtrip() {
+        let matrix = Matrix::from(vec![1, 2, 3, 4, 5, 6], 2, 3);
+        let json = serde_json::to_string(&matrix).unwrap();
+        let deserialized: Matrix<i32> = serde_json::from_str(&json).unwrap();
+        assert_eq!(matrix, deserialized);
+    }
 }
