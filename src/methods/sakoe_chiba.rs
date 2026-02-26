@@ -4,6 +4,7 @@ use crate::{Distance, Solution, matrix::Matrix};
 
 /// Result of a Sakoe-Chiba band–constrained DTW computation. Implements [`Solution`].
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SakoeChibaSolution<D> {
     mat: Matrix<Option<D>>,
 }

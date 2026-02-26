@@ -13,6 +13,10 @@ license-file = "LICENSE"
 exclude = [".github/", "tests/"]
 
 [dependencies]
+serde = { version = "1.0.228", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 float-cmp = "0.9.0"
+
+[features]
+serde = ["dep:serde"]

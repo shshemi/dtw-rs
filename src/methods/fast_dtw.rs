@@ -5,6 +5,7 @@ use crate::traits::{Distance, Midpoint, Solution};
 
 /// Result of a FastDTW computation. Implements [`Solution`].
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FastDtwSolution<D> {
     dist: D,
     warping_path: Vec<(usize, usize)>,
