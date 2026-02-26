@@ -4,6 +4,7 @@ use std::ops::Add;
 use crate::traits::{Distance, Midpoint, Solution};
 
 /// Result of a FastDTW computation. Implements [`Solution`].
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FastDtwSolution<D> {
     dist: D,
     warping_path: Vec<(usize, usize)>,

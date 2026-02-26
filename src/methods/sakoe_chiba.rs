@@ -3,6 +3,7 @@ use std::ops::Add;
 use crate::{Distance, Solution, matrix::Matrix};
 
 /// Result of a Sakoe-Chiba band–constrained DTW computation. Implements [`Solution`].
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SakoeChibaSolution<D> {
     mat: Matrix<Option<D>>,
 }
@@ -238,11 +239,7 @@ where
 /// # Complexity
 ///
 /// O(n * w) time, where n is the longer sequence length and w is the window size.
-pub fn sakoe_chiba<T, D>(
-    x: &[T],
-    y: &[T],
-    window_size: usize,
-) -> SakoeChibaSolution<D>
+pub fn sakoe_chiba<T, D>(x: &[T], y: &[T], window_size: usize) -> SakoeChibaSolution<D>
 where
     T: Distance<Output = D>,
     D: PartialOrd + Add<Output = D> + Clone,

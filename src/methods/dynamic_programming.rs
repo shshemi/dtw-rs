@@ -3,6 +3,7 @@ use std::ops::Add;
 use crate::{Distance, Solution, matrix::Matrix};
 
 /// Result of a standard DTW computation. Implements [`Solution`].
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct DtwSolution<D> {
     mat: Matrix<D>,
 }
