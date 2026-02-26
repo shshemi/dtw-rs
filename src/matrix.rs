@@ -4,6 +4,7 @@ use std::{
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Matrix<T> {
     data: Box<[T]>,
     shape: (usize, usize),
