@@ -255,6 +255,63 @@ where
     itakura_parallelogram_with_distance(x, y, max_slope, |a, b| a.distance(b))
 }
 
+/// Builder for Itakura parallelogram–constrained DTW. Uses typestate to select
+/// between the [`Distance`] trait and a user-supplied closure.
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{ItakuraParallelogram, Solution};
+///
+/// let x = [1.0_f64, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0_f64, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// // Using the Distance trait:
+/// let result = ItakuraParallelogram::new(&x, &y, 2.0).compute();
+/// assert!(!result.path().is_empty());
+///
+/// // Using a custom distance closure:
+/// let result = ItakuraParallelogram::new(&x, &y, 2.0)
+///     .distance_fn(|a: &f64, b: &f64| (a - b).abs())
+///     .compute();
+/// assert!(!result.path().is_empty());
+/// ```
+pub struct ItakuraParallelogram<'a, T, Dist = ()> {
+    x: &'a [T],
+    y: &'a [T],
+    max_slope: f64,
+    dist: Dist,
+}
+
+impl<'a, T> ItakuraParallelogram<'a, T> {
+    pub fn new(x: &'a [T], y: &'a [T], max_slope: f64) -> Self {
+        ItakuraParallelogram { x, y, max_slope, dist: () }
+    }
+}
+
+impl<'a, T> ItakuraParallelogram<'a, T, ()> {
+    pub fn distance_fn<D, F: Fn(&T, &T) -> D>(self, f: F) -> ItakuraParallelogram<'a, T, F> {
+        ItakuraParallelogram { x: self.x, y: self.y, max_slope: self.max_slope, dist: f }
+    }
+
+    pub fn compute<D>(self) -> ItakuraParallelogramSolution<D>
+    where
+        T: Distance<Output = D>,
+        D: PartialOrd + Add<Output = D> + Clone,
+    {
+        itakura_parallelogram(self.x, self.y, self.max_slope)
+    }
+}
+
+impl<'a, T, D, F: Fn(&T, &T) -> D> ItakuraParallelogram<'a, T, F> {
+    pub fn compute(self) -> ItakuraParallelogramSolution<D>
+    where
+        D: PartialOrd + Add<Output = D> + Clone,
+    {
+        itakura_parallelogram_with_distance(self.x, self.y, self.max_slope, self.dist)
+    }
+}
+
 #[cfg(all(test, feature = "serde"))]
 mod serde_tests {
     use super::*;
