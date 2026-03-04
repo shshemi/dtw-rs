@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
 use dtw_rs::{
-    Solution, dtw, dtw_with_distance, fastdtw, fastdtw_with_distance, itakura_parallelogram,
+    Dtw, FastDtw, ItakuraParallelogram, SakoeChiba, Solution, dtw,
+    dtw_with_distance, fastdtw, fastdtw_with_distance, itakura_parallelogram,
     itakura_parallelogram_with_distance, sakoe_chiba, sakoe_chiba_with_distance,
 };
 use float_cmp::assert_approx_eq;
@@ -44,6 +45,52 @@ fn dtw_from_test_cases() {
             let expected_distance = chunk[4].parse::<f64>().unwrap();
 
             let result = dtw(&a, &b);
+
+            assert_approx_eq!(f64, result.distance(), expected_distance);
+            assert_eq!(result.path(), expected_path);
+        });
+}
+
+#[test]
+fn dtw_builder_with_distance_trait() {
+    include_str!("dtw_test_cases.txt")
+        .lines()
+        .collect::<Vec<&str>>()
+        .chunks_exact(5)
+        .for_each(|chunk| {
+            let a = into_float_vec::<f64>(chunk[0]);
+            let b = into_float_vec::<f64>(chunk[1]);
+            let expected_path = into_float_vec::<usize>(chunk[2])
+                .into_iter()
+                .zip(into_float_vec::<usize>(chunk[3]))
+                .collect::<Vec<(usize, usize)>>();
+            let expected_distance = chunk[4].parse::<f64>().unwrap();
+
+            let result = Dtw::new(&a, &b).compute();
+
+            assert_approx_eq!(f64, result.distance(), expected_distance);
+            assert_eq!(result.path(), expected_path);
+        });
+}
+
+#[test]
+fn dtw_builder_with_distance_closure() {
+    include_str!("dtw_test_cases.txt")
+        .lines()
+        .collect::<Vec<&str>>()
+        .chunks_exact(5)
+        .for_each(|chunk| {
+            let a = into_float_vec::<f64>(chunk[0]);
+            let b = into_float_vec::<f64>(chunk[1]);
+            let expected_path = into_float_vec::<usize>(chunk[2])
+                .into_iter()
+                .zip(into_float_vec::<usize>(chunk[3]))
+                .collect::<Vec<(usize, usize)>>();
+            let expected_distance = chunk[4].parse::<f64>().unwrap();
+
+            let result = Dtw::new(&a, &b)
+                .distance_fn(|a, b| f64::abs(a - b))
+                .compute();
 
             assert_approx_eq!(f64, result.distance(), expected_distance);
             assert_eq!(result.path(), expected_path);
@@ -181,6 +228,149 @@ fn fastdtw_with_distance_trait() {
             let radius = chunk[5].parse::<usize>().unwrap();
 
             let result = fastdtw(&a, &b, radius);
+
+            assert_approx_eq!(f64, result.distance(), expected_distance);
+            assert_eq!(result.path(), expected_path);
+        });
+}
+
+#[test]
+fn sakoe_chiba_builder_with_distance_trait() {
+    include_str!("sakoe_chiba_test_cases.txt")
+        .lines()
+        .collect::<Vec<&str>>()
+        .chunks_exact(6)
+        .for_each(|chunk| {
+            let a = into_float_vec::<f64>(chunk[0]);
+            let b = into_float_vec::<f64>(chunk[1]);
+            let expected_path = into_float_vec::<usize>(chunk[2])
+                .into_iter()
+                .zip(into_float_vec::<usize>(chunk[3]))
+                .collect::<Vec<(usize, usize)>>();
+            let expected_distance = chunk[4].parse::<f64>().unwrap();
+            let window_size = chunk[5].parse::<usize>().unwrap();
+
+            let result = SakoeChiba::new(&a, &b, window_size).compute();
+
+            assert_approx_eq!(f64, result.distance(), expected_distance);
+            assert_eq!(result.path(), expected_path);
+        });
+}
+
+#[test]
+fn sakoe_chiba_builder_with_distance_closure() {
+    include_str!("sakoe_chiba_test_cases.txt")
+        .lines()
+        .collect::<Vec<&str>>()
+        .chunks_exact(6)
+        .for_each(|chunk| {
+            let a = into_float_vec::<f64>(chunk[0]);
+            let b = into_float_vec::<f64>(chunk[1]);
+            let expected_path = into_float_vec::<usize>(chunk[2])
+                .into_iter()
+                .zip(into_float_vec::<usize>(chunk[3]))
+                .collect::<Vec<(usize, usize)>>();
+            let expected_distance = chunk[4].parse::<f64>().unwrap();
+            let window_size = chunk[5].parse::<usize>().unwrap();
+
+            let result = SakoeChiba::new(&a, &b, window_size)
+                .distance_fn(|a, b| f64::abs(a - b))
+                .compute();
+
+            assert_approx_eq!(f64, result.distance(), expected_distance);
+            assert_eq!(result.path(), expected_path);
+        });
+}
+
+#[test]
+fn itakura_parallelogram_builder_with_distance_trait() {
+    include_str!("itakura_test_cases.txt")
+        .lines()
+        .collect::<Vec<&str>>()
+        .chunks_exact(5)
+        .for_each(|chunk| {
+            let a = into_float_vec::<f64>(chunk[0]);
+            let b = into_float_vec::<f64>(chunk[1]);
+            let expected_path = into_float_vec::<usize>(chunk[2])
+                .into_iter()
+                .zip(into_float_vec::<usize>(chunk[3]))
+                .collect::<Vec<(usize, usize)>>();
+            let expected_distance = chunk[4].parse::<f64>().unwrap();
+
+            let result = ItakuraParallelogram::new(&a, &b, 2.0).compute();
+
+            assert_approx_eq!(f64, result.distance(), expected_distance);
+            assert_eq!(result.path(), expected_path);
+        });
+}
+
+#[test]
+fn itakura_parallelogram_builder_with_distance_closure() {
+    include_str!("itakura_test_cases.txt")
+        .lines()
+        .collect::<Vec<&str>>()
+        .chunks_exact(5)
+        .for_each(|chunk| {
+            let a = into_float_vec::<f64>(chunk[0]);
+            let b = into_float_vec::<f64>(chunk[1]);
+            let expected_path = into_float_vec::<usize>(chunk[2])
+                .into_iter()
+                .zip(into_float_vec::<usize>(chunk[3]))
+                .collect::<Vec<(usize, usize)>>();
+            let expected_distance = chunk[4].parse::<f64>().unwrap();
+
+            let result = ItakuraParallelogram::new(&a, &b, 2.0)
+                .distance_fn(|a, b| f64::abs(a - b))
+                .compute();
+
+            assert_approx_eq!(f64, result.distance(), expected_distance);
+            assert_eq!(result.path(), expected_path);
+        });
+}
+
+#[test]
+fn fastdtw_builder_with_distance_trait() {
+    include_str!("fastdtw_test_cases.txt")
+        .lines()
+        .collect::<Vec<&str>>()
+        .chunks_exact(6)
+        .for_each(|chunk| {
+            let a = into_float_vec::<f64>(chunk[0]);
+            let b = into_float_vec::<f64>(chunk[1]);
+            let expected_path = into_float_vec::<usize>(chunk[2])
+                .into_iter()
+                .zip(into_float_vec::<usize>(chunk[3]))
+                .collect::<Vec<(usize, usize)>>();
+            let expected_distance = chunk[4].parse::<f64>().unwrap();
+            let radius = chunk[5].parse::<usize>().unwrap();
+
+            let result = FastDtw::new(&a, &b, radius).compute();
+
+            assert_approx_eq!(f64, result.distance(), expected_distance);
+            assert_eq!(result.path(), expected_path);
+        });
+}
+
+#[test]
+fn fastdtw_builder_with_distance_closure() {
+    include_str!("fastdtw_test_cases.txt")
+        .lines()
+        .collect::<Vec<&str>>()
+        .chunks_exact(6)
+        .for_each(|chunk| {
+            let a = into_float_vec::<f64>(chunk[0]);
+            let b = into_float_vec::<f64>(chunk[1]);
+            let expected_path = into_float_vec::<usize>(chunk[2])
+                .into_iter()
+                .zip(into_float_vec::<usize>(chunk[3]))
+                .collect::<Vec<(usize, usize)>>();
+            let expected_distance = chunk[4].parse::<f64>().unwrap();
+            let radius = chunk[5].parse::<usize>().unwrap();
+
+            let result = FastDtw::new(&a, &b, radius)
+                .distance_fn(|a, b| f64::abs(a - b))
+                .coarsen_fn(|a, b| (a + b) / 2.0)
+                .compute();
 
             assert_approx_eq!(f64, result.distance(), expected_distance);
             assert_eq!(result.path(), expected_path);
