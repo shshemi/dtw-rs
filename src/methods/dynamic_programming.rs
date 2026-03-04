@@ -137,6 +137,60 @@ where
     dtw_with_distance(x, y, |a, b| a.distance(b))
 }
 
+/// Builder for configuring and running a standard DTW computation.
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{Dtw, Solution};
+///
+/// let x = [1.0_f64, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0_f64, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// // Using the default Distance trait:
+/// let result = Dtw::new(&x, &y).compute();
+/// let distance: f64 = result.distance();
+///
+/// // Using a custom distance function:
+/// let result = Dtw::new(&x, &y)
+///     .distance_fn(|a: &f64, b: &f64| (a - b).powi(2))
+///     .compute();
+/// ```
+pub struct Dtw<'a, T, Dist = ()> {
+    x: &'a [T],
+    y: &'a [T],
+    dist: Dist,
+}
+
+impl<'a, T> Dtw<'a, T> {
+    pub fn new(x: &'a [T], y: &'a [T]) -> Self {
+        Dtw { x, y, dist: () }
+    }
+}
+
+impl<'a, T> Dtw<'a, T, ()> {
+    pub fn distance_fn<D, F: Fn(&T, &T) -> D>(self, f: F) -> Dtw<'a, T, F> {
+        Dtw { x: self.x, y: self.y, dist: f }
+    }
+
+    pub fn compute<D>(self) -> DtwSolution<D>
+    where
+        T: Distance<Output = D>,
+        D: PartialOrd + Add<Output = D> + Default + Clone,
+    {
+        dtw(self.x, self.y)
+    }
+}
+
+impl<'a, T, D, F: Fn(&T, &T) -> D> Dtw<'a, T, F> {
+    pub fn compute(self) -> DtwSolution<D>
+    where
+        D: PartialOrd + Add<Output = D> + Default + Clone,
+    {
+        dtw_with_distance(self.x, self.y, self.dist)
+    }
+}
+
 #[cfg(all(test, feature = "serde"))]
 mod serde_tests {
     use super::*;
