@@ -248,6 +248,63 @@ where
     sakoe_chiba_with_distance(x, y, window_size, |a, b| a.distance(b))
 }
 
+/// Builder for Sakoe-Chiba band–constrained DTW. Uses typestate to select
+/// between the [`Distance`] trait and a user-supplied closure.
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{SakoeChiba, Solution};
+///
+/// let x = [1.0_f64, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0_f64, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// // Using the Distance trait:
+/// let result = SakoeChiba::new(&x, &y, 1).compute();
+/// assert!(!result.path().is_empty());
+///
+/// // Using a custom distance closure:
+/// let result = SakoeChiba::new(&x, &y, 1)
+///     .distance_fn(|a: &f64, b: &f64| (a - b).abs())
+///     .compute();
+/// assert!(!result.path().is_empty());
+/// ```
+pub struct SakoeChiba<'a, T, Dist = ()> {
+    x: &'a [T],
+    y: &'a [T],
+    window_size: usize,
+    dist: Dist,
+}
+
+impl<'a, T> SakoeChiba<'a, T> {
+    pub fn new(x: &'a [T], y: &'a [T], window_size: usize) -> Self {
+        SakoeChiba { x, y, window_size, dist: () }
+    }
+}
+
+impl<'a, T> SakoeChiba<'a, T, ()> {
+    pub fn distance_fn<D, F: Fn(&T, &T) -> D>(self, f: F) -> SakoeChiba<'a, T, F> {
+        SakoeChiba { x: self.x, y: self.y, window_size: self.window_size, dist: f }
+    }
+
+    pub fn compute<D>(self) -> SakoeChibaSolution<D>
+    where
+        T: Distance<Output = D>,
+        D: PartialOrd + Add<Output = D> + Clone,
+    {
+        sakoe_chiba(self.x, self.y, self.window_size)
+    }
+}
+
+impl<'a, T, D, F: Fn(&T, &T) -> D> SakoeChiba<'a, T, F> {
+    pub fn compute(self) -> SakoeChibaSolution<D>
+    where
+        D: PartialOrd + Add<Output = D> + Clone,
+    {
+        sakoe_chiba_with_distance(self.x, self.y, self.window_size, self.dist)
+    }
+}
+
 #[cfg(all(test, feature = "serde"))]
 mod serde_tests {
     use super::*;
