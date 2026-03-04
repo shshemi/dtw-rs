@@ -274,6 +274,79 @@ where
     fastdtw_with_distance(x, y, radius, |a, b| a.distance(b), |a, b| a.midpoint(b))
 }
 
+/// Builder for FastDTW. Uses two typestate markers (`Dist` and `Coarsen`) to
+/// select between trait-based defaults and user-supplied closures.
+///
+/// When neither `distance_fn` nor `coarsen_fn` is called, `compute()` requires
+/// `T: Distance + Midpoint`. When both are called, the closures are used instead.
+/// Setting only one prevents compilation, matching the existing API constraint.
+///
+/// # Examples
+///
+/// ```
+/// use dtw_rs::{FastDtw, Solution};
+///
+/// let x = [1.0_f64, 3.0, 9.0, 2.0, 1.0];
+/// let y = [2.0_f64, 0.0, 0.0, 8.0, 7.0, 2.0];
+///
+/// // Using Distance + Midpoint traits:
+/// let result = FastDtw::new(&x, &y, 1).compute();
+/// assert!(!result.path().is_empty());
+///
+/// // Using custom closures for both:
+/// let result = FastDtw::new(&x, &y, 1)
+///     .distance_fn(|a: &f64, b: &f64| (a - b).abs())
+///     .coarsen_fn(|a: &f64, b: &f64| (a + b) / 2.0)
+///     .compute();
+/// assert!(!result.path().is_empty());
+/// ```
+pub struct FastDtw<'a, T, Dist = (), Coarsen = ()> {
+    x: &'a [T],
+    y: &'a [T],
+    radius: usize,
+    dist: Dist,
+    coarsen: Coarsen,
+}
+
+impl<'a, T> FastDtw<'a, T> {
+    pub fn new(x: &'a [T], y: &'a [T], radius: usize) -> Self {
+        FastDtw { x, y, radius, dist: (), coarsen: () }
+    }
+}
+
+impl<'a, T, Coarsen> FastDtw<'a, T, (), Coarsen> {
+    pub fn distance_fn<D, F: Fn(&T, &T) -> D>(self, f: F) -> FastDtw<'a, T, F, Coarsen> {
+        FastDtw { x: self.x, y: self.y, radius: self.radius, dist: f, coarsen: self.coarsen }
+    }
+}
+
+impl<'a, T, Dist> FastDtw<'a, T, Dist, ()> {
+    pub fn coarsen_fn<G: Fn(&T, &T) -> T>(self, g: G) -> FastDtw<'a, T, Dist, G> {
+        FastDtw { x: self.x, y: self.y, radius: self.radius, dist: self.dist, coarsen: g }
+    }
+}
+
+// No custom fns — use Distance + Midpoint traits
+impl<'a, T> FastDtw<'a, T, (), ()> {
+    pub fn compute<D>(self) -> FastDtwSolution<D>
+    where
+        T: Distance<Output = D> + Midpoint,
+        D: PartialOrd + Add<Output = D> + Clone,
+    {
+        fastdtw(self.x, self.y, self.radius)
+    }
+}
+
+// Both custom fns set
+impl<'a, T, D, F: Fn(&T, &T) -> D, G: Fn(&T, &T) -> T> FastDtw<'a, T, F, G> {
+    pub fn compute(self) -> FastDtwSolution<D>
+    where
+        D: PartialOrd + Add<Output = D> + Clone,
+    {
+        fastdtw_with_distance(self.x, self.y, self.radius, self.dist, self.coarsen)
+    }
+}
+
 #[cfg(all(test, feature = "serde"))]
 mod serde_tests {
     use super::*;
